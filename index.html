@@ -67,24 +67,24 @@
   .shop-row .price { font-size: 13px; font-weight: 700; color: var(--accent); white-space: nowrap; }
 
   #battle-controls {
-    display: flex; gap: 14px; justify-content: center; align-items: center;
-    background: #1a2614; padding: 8px 10px;
+    position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 8px; z-index: 20;
   }
   .ctrl-btn {
-    border: none; border-radius: 10px; background: var(--panel); color: var(--text);
-    width: 44px; height: 36px; font-size: 17px; cursor: pointer;
+    border: none; border-radius: 7px; background: #24331cd9; color: var(--text);
+    width: 30px; height: 26px; font-size: 14px; cursor: pointer;
   }
-  .ctrl-btn-shop { font-size: 22px; width: 52px; height: 40px; }
+  .ctrl-btn-shop { font-size: 16px; width: 34px; height: 28px; }
 
-  #battle-sub-bar {
-    display: flex; flex-direction: column; gap: 4px; align-items: flex-start;
-    background: #1a2614; padding: 6px 10px; font-size: 11px; color: var(--text-dim);
-    border-bottom: 1px solid #00000030;
+  #wave-counter, #kill-values {
+    position: absolute; top: 8px; z-index: 20;
+    background: #00000055; border-radius: 8px; padding: 5px 7px;
+    font-size: 10px; color: var(--text); line-height: 1.6;
   }
-  #wave-counter, #kill-values { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-  .mini-stat { display: flex; align-items: center; gap: 2px; }
-  .mini-stat .mi { font-size: 13px; }
-
+  #wave-counter { left: 8px; }
+  #kill-values { right: 8px; text-align: right; }
+  .mini-stat-line { display: block; }
+  .mini-stat-label { color: var(--text-dim); margin-bottom: 2px; display: block; }
   #battle-top {
     display: flex; align-items: center; justify-content: space-between;
     padding: 8px 12px; background: var(--panel); gap: 10px;
@@ -99,11 +99,11 @@
   #battle-gold { font-size: 13px; color: var(--accent); font-weight: 700; text-align: center; white-space: nowrap; }
 
   .tent {
-    position: absolute; top: 50%; transform: translateY(-50%); width: 9%; height: 64px;
-    min-width: 56px; max-width: 80px; pointer-events: none;
+    position: absolute; bottom: 0; width: 10%; height: 74px;
+    min-width: 64px; max-width: 90px; pointer-events: none;
   }
-  .tent.player { left: 1%; }
-  .tent.enemy { right: 1%; }
+  .tent.player { left: 0; }
+  .tent.enemy { right: 0; }
   .tent svg { width: 100%; height: 100%; }
   .tent .tent-cracks-1, .tent .tent-cracks-2, .tent .tent-ruins { opacity: 0; }
   .tent.dmg1 .tent-cracks-1 { opacity: 1; }
@@ -118,17 +118,17 @@
 
   #lane-wrap {
     flex: 1; position: relative; overflow: hidden;
-    background: linear-gradient(180deg, #2a3a5c 0%, #4a4a6e 55%, #3a3a2a 78%, #2a2a1a 100%);
+    background: linear-gradient(180deg, #2a3a5c 0%, #4a5a7a 30%, #5a6a5a 42%, #3a3a2a 100%);
   }
   #lane-wrap::before {
-    content: ""; position: absolute; top: 12%; right: 14%; width: 46px; height: 46px;
+    content: ""; position: absolute; top: 8%; right: 12%; width: 40px; height: 40px;
     border-radius: 50%; background: radial-gradient(circle at 35% 35%, #f5f1de, #d8d4c0);
-    box-shadow: 0 0 24px rgba(245,241,222,0.35); pointer-events: none;
+    box-shadow: 0 0 20px rgba(245,241,222,0.3); pointer-events: none;
   }
   #lane-wrap::after {
-    content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 22%;
-    background: #1c1c12;
-    clip-path: polygon(0% 60%, 8% 40%, 16% 58%, 26% 35%, 36% 55%, 48% 30%, 58% 52%, 70% 38%, 82% 56%, 92% 42%, 100% 58%, 100% 100%, 0% 100%);
+    content: ""; position: absolute; top: 0; left: 0; right: 0; height: 18%;
+    background: #23304a; opacity: 0.55;
+    clip-path: polygon(0% 75%, 8% 40%, 15% 65%, 24% 22%, 34% 58%, 45% 32%, 55% 62%, 66% 26%, 76% 58%, 87% 38%, 100% 68%, 100% 0%, 0% 0%);
     pointer-events: none;
   }
   #lane-track { position: absolute; left: 0; right: 0; top: 50%; height: 4px; background: #00000022; transform: translateY(-50%); }
@@ -219,19 +219,17 @@
       </div>
     </div>
 
-    <div id="battle-controls">
-      <button class="ctrl-btn" id="btn-exit-battle">✕</button>
-      <button class="ctrl-btn ctrl-btn-shop" id="btn-battle-shop">🛒</button>
-      <button class="ctrl-btn" id="btn-speed">1x</button>
-    </div>
-
-    <div id="battle-sub-bar">
-      <div id="wave-counter"></div>
-      <div id="kill-values"></div>
-    </div>
-
     <div id="lane-wrap">
       <div id="lane-track"></div>
+
+      <div id="battle-controls">
+        <button class="ctrl-btn" id="btn-exit-battle">✕</button>
+        <button class="ctrl-btn ctrl-btn-shop" id="btn-battle-shop">🛒</button>
+        <button class="ctrl-btn" id="btn-speed">1x</button>
+      </div>
+      <div id="wave-counter"></div>
+      <div id="kill-values"></div>
+
       <div class="tent player" id="tent-player">
         <svg viewBox="0 0 100 100">
           <g class="tent-intact">
@@ -349,6 +347,7 @@ const DEFAULT_SAVE = {
   difficulty: "normal",
   gold: 0,
   clearedLevels: 0,
+  levelBestDifficulty: {}, // { "0": "hard", "1": "easy", ... } — лучшая сложность, на которой пройден уровень
   unlocked: { infantry: true, archer: false, mammoth: false, flyer: false },
   upgrades: { dmg: 0, hp: 0, baseHp: 0, foodRate: 0 },
 };
@@ -367,6 +366,7 @@ function loadSave() {
       return Object.assign({}, DEFAULT_SAVE, data, {
         unlocked: Object.assign({}, DEFAULT_SAVE.unlocked, data.unlocked),
         upgrades: Object.assign({}, DEFAULT_SAVE.upgrades, data.upgrades),
+        levelBestDifficulty: Object.assign({}, data.levelBestDifficulty),
       });
     } catch (e) { }
   }
@@ -472,6 +472,8 @@ el("btn-reset-progress").addEventListener("click", () => {
   renderMenu();
 });
 
+const DIFFICULTY_STAR_COLOR = { easy: "#6fd97a", normal: "#6ea8ff", hard: "#ffcc66" };
+
 function renderLevels() {
   const row = el("level-row");
   row.innerHTML = "";
@@ -480,7 +482,14 @@ function renderLevels() {
     const cleared = i < SAVE.clearedLevels;
     const locked = i > SAVE.clearedLevels;
     btn.className = "level-btn" + (cleared ? " cleared" : "") + (locked ? " locked" : "");
-    btn.textContent = String(i + 1);
+    const bestDiff = SAVE.levelBestDifficulty[i];
+    if (bestDiff) {
+      btn.style.borderColor = DIFFICULTY_STAR_COLOR[bestDiff];
+      const stars = "★".repeat(DIFFICULTY_RANK[bestDiff]);
+      btn.innerHTML = String(i + 1) + '<div style="font-size:10px; color:' + DIFFICULTY_STAR_COLOR[bestDiff] + ';">' + stars + '</div>';
+    } else {
+      btn.textContent = String(i + 1);
+    }
     if (!locked) btn.addEventListener("click", () => startBattle(i));
     row.appendChild(btn);
   }
@@ -640,8 +649,8 @@ function trySpawnPlayerUnit(key) {
   spawnUnit("player", key);
 }
 
-const GROUND_LANE_OFFSETS = [4, 22, 40, 13, 31, 49, 58];
-const AIR_LANE_OFFSETS = [-20, -38, -56, -29, -47, -65];
+const GROUND_LANE_OFFSETS = [60, 78, 96, 51, 69, 87, 105];
+const AIR_LANE_OFFSETS = [-8, -26, -44, -17, -35];
 
 function spawnUnit(side, key) {
   const def = UNIT_DEFS[key];
@@ -804,14 +813,16 @@ function renderWaveCounter() {
   const counts = {};
   battle.waveQueue.forEach((w) => { counts[w.type] = (counts[w.type] || 0) + 1; });
   const wrap = el("wave-counter");
-  const parts = UNIT_ORDER.filter((k) => counts[k]).map((k) =>
-    '<div class="mini-stat"><span class="mi">' + UNIT_DEFS[k].icon + '</span>×' + counts[k] + '</div>');
-  wrap.innerHTML = parts.length ? ("Осталось: " + parts.join("")) : "Последние враги на поле!";
+  const lines = UNIT_ORDER.filter((k) => counts[k]).map((k) =>
+    '<span class="mini-stat-line">' + UNIT_DEFS[k].icon + ' ×' + counts[k] + '</span>');
+  wrap.innerHTML = '<span class="mini-stat-label">Осталось:</span>' +
+    (lines.length ? lines.join("") : "Последние враги!");
 }
 
 function renderKillValues() {
-  el("kill-values").innerHTML = UNIT_ORDER.map((k) =>
-    '<div class="mini-stat"><span class="mi">' + UNIT_DEFS[k].icon + '</span>🪙' + GOLD_PER_KILL[k] + '</div>').join("");
+  const lines = UNIT_ORDER.map((k) =>
+    '<span class="mini-stat-line">' + UNIT_DEFS[k].icon + ' 🪙' + GOLD_PER_KILL[k] + '</span>');
+  el("kill-values").innerHTML = '<span class="mini-stat-label">За убийство:</span>' + lines.join("");
 }
 
 function renderBattleHp() {
@@ -848,6 +859,15 @@ function checkBattleEnd() {
   }
 }
 
+const DIFFICULTY_RANK = { easy: 1, normal: 2, hard: 3 };
+
+function recordLevelDifficulty(levelIndex, diffKey) {
+  const prev = SAVE.levelBestDifficulty[levelIndex];
+  if (!prev || DIFFICULTY_RANK[diffKey] > DIFFICULTY_RANK[prev]) {
+    SAVE.levelBestDifficulty[levelIndex] = diffKey;
+  }
+}
+
 function endBattle(won) {
   clearInterval(battleTimer);
   battleTimer = null;
@@ -862,6 +882,7 @@ function endBattle(won) {
   if (won && battle.levelIndex === SAVE.clearedLevels) {
     SAVE.clearedLevels = Math.min(LEVELS.length, SAVE.clearedLevels + 1);
   }
+  if (won) recordLevelDifficulty(battle.levelIndex, SAVE.difficulty);
   writeSave(SAVE);
 
   sendAnalytics(
@@ -899,16 +920,24 @@ const ANALYTICS_BOT_TOKEN = "8211831789:AAFHVmDgd4SNtANOXRETRB0lfEBF8tQkVIQ";
 const ANALYTICS_CHAT_ID = "-5507283361";
 const sessionStartedAt = Date.now();
 
+function getDeviceLabel() {
+  const ua = navigator.userAgent || "";
+  if (/iPhone|Android.*Mobile|Windows Phone/i.test(ua)) return "📱 смартфон";
+  if (/iPad|Android(?!.*Mobile)|Tablet/i.test(ua)) return "📱 планшет";
+  return "💻 компьютер";
+}
+
 function getPlayerLabel() {
+  const device = getDeviceLabel();
   try {
     const u = window.Telegram && window.Telegram.WebApp &&
       window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user;
     if (u) {
       return (u.first_name || "") + (u.last_name ? " " + u.last_name : "") +
-        (u.username ? " (@" + u.username + ")" : "") + " [id" + u.id + "]";
+        (u.username ? " (@" + u.username + ")" : "") + " [id" + u.id + "] | " + device;
     }
   } catch (e) { /* нет доступа к Telegram-контексту — открыто не из Telegram */ }
-  return "Неизвестный игрок (не через Telegram)";
+  return "Неизвестный игрок (не через Telegram) | " + device;
 }
 
 function sendAnalytics(text, keepalive) {
