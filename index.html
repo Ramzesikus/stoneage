@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Каменный век — Племенные войны</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://sad.adsgram.ai/js/sad.min.js"></script>
 <style>
   :root {
     --bg: #1a2614; --panel: #24331c; --accent: #ffcc66; --text: #f0f0e8;
@@ -380,18 +381,25 @@ const BASE_UPGRADE_DEFS = {
 
 const MEDIEVAL_EXTRA_UPGRADE_DEFS = {
   defense:   { name: "Защита базы",     icon: "🛡️", desc: "-4% входящего урона по твоей базе", baseCost: 20, mul: 1.4, max: 8 },
-  unitSpeed: { name: "Скорость юнитов", icon: "🥾", desc: "+5% скорости передвижения юнитов",   baseCost: 20, mul: 1.35, max: 8 },
-  crit:      { name: "Шанс крита",      icon: "🎯", desc: "+4% шанс удвоенного урона",          baseCost: 25, mul: 1.4, max: 8 },
 };
 
 const MEDIEVAL_UPGRADE_DEFS = Object.assign({}, BASE_UPGRADE_DEFS, MEDIEVAL_EXTRA_UPGRADE_DEFS);
+
+/* Абгрейды только за рекламу (AdsGram) — никогда за золото. Каждый успешный
+   просмотр даёт ровно +1 уровень, до max. Доступны только в Средневековье. */
+const AD_UPGRADE_DEFS = {
+  unitSpeed: { name: "Скорость юнитов", icon: "🥾", desc: "+5% скорости передвижения юнитов за просмотр рекламы", max: 8 },
+  crit:      { name: "Шанс крита",      icon: "🎯", desc: "+4% шанс удвоенного урона за просмотр рекламы",        max: 8 },
+};
+const ADSGRAM_BLOCK_ID_REWARD = "36650";
+const ADSGRAM_BLOCK_ID_INTRO = "int-36651";
 
 /* Покупки за Telegram Stars — доступны только во вкладке Средневековья,
    но эффект применяется глобально (не привязан к эпохе), и НЕ сбрасывается
    кнопкой "Начать заново". */
 const STARS_UPGRADE_DEFS = {
-  startFood: { name: "Стартовая провизия", icon: "🍗", desc: "+10 провизии в начале каждого боя, навсегда", costStars: 1 },
-  bonusGold: { name: "Доп. золото",        icon: "💰", desc: "+20% золота за каждое убийство, навсегда",    costStars: 2 },
+  startFood: { name: "Стартовая провизия", icon: "🍗", desc: "+10 провизии в начале каждого боя, навсегда", costStars: 60 },
+  bonusGold: { name: "Доп. золото",        icon: "💰", desc: "+20% золота за каждое убийство, навсегда",    costStars: 90 },
 };
 
 function upgradeDisplayValue(key, lvl) {
@@ -416,7 +424,7 @@ const EPOCHS = {
     name: "Средневековье", tabIcon: "⚔️",
     unitDefs: MEDIEVAL_UNIT_DEFS, unitOrder: MEDIEVAL_UNIT_ORDER, levels: MEDIEVAL_LEVELS,
     goldPerKill: MEDIEVAL_GOLD_PER_KILL, upgradeDefs: MEDIEVAL_UPGRADE_DEFS, legend: MEDIEVAL_LEGEND,
-    baseSvg: castleSvg,
+    baseSvg: castleSvg, adUpgradeDefs: AD_UPGRADE_DEFS,
   },
 };
 const EPOCH_ORDER = ["stone", "medieval"];
@@ -489,6 +497,7 @@ function freshEpochState(epochKey) {
   ep.unitOrder.forEach((k) => { unlocked[k] = !!ep.unitDefs[k].alwaysUnlocked; });
   const upgrades = {};
   Object.keys(ep.upgradeDefs).forEach((k) => { upgrades[k] = 0; });
+  if (ep.adUpgradeDefs) Object.keys(ep.adUpgradeDefs).forEach((k) => { upgrades[k] = 0; });
   return { clearedLevels: 0, levelBestDifficulty: {}, unlocked, upgrades };
 }
 
@@ -534,8 +543,7 @@ function loadSave() {
         unlocked: Object.assign({}, fresh.unlocked, epData.unlocked),
         upgrades: Object.assign({}, fresh.upgrades, epData.upgrades),
       };
-    });
-    return merged;
+    });    return merged;
   }
 
   // Старый формат (одна эпоха, до этого обновления) — мигрируем без потери прогресса
@@ -653,6 +661,18 @@ function isEpochUnlocked(epochKey) {
   return SAVE.epochs[prevKey].clearedLevels >= EPOCHS[prevKey].levels.length;
 }
 
+function switchEpoch(key) {
+  SAVE.currentEpoch = key;
+  applyEpoch(key);
+  if (key === "medieval" && !SAVE.medievalIntroAdShown) {
+    SAVE.medievalIntroAdShown = true;
+    try {
+      window.Adsgram.init({ blockId: ADSGRAM_BLOCK_ID_INTRO }).show().catch(() => {});
+    } catch (e) { /* реклама не загрузилась — не блокируем игрока */ }
+  }
+  writeSave(SAVE);
+}
+
 function renderEpochTabs(containerId, onSwitch) {
   const row = el(containerId);
   row.innerHTML = "";
@@ -664,9 +684,7 @@ function renderEpochTabs(containerId, onSwitch) {
     btn.textContent = ep.tabIcon + " " + ep.name;
     if (unlocked) {
       btn.addEventListener("click", () => {
-        SAVE.currentEpoch = key;
-        writeSave(SAVE);
-        applyEpoch(key);
+        switchEpoch(key);
         onSwitch();
       });
     }
@@ -730,6 +748,20 @@ function buyWithStars(key, def) {
   }).catch(() => { window.alert("Ошибка сети при создании счёта."); });
 }
 
+function watchAdForUpgrade(key) {
+  if (!window.Adsgram) {
+    window.alert("Реклама работает только внутри Telegram.");
+    return;
+  }
+  try {
+    window.Adsgram.init({ blockId: ADSGRAM_BLOCK_ID_REWARD }).show().then(() => {
+      EP().upgrades[key] = (EP().upgrades[key] || 0) + 1;
+      writeSave(SAVE);
+      renderShop();
+    }).catch(() => { /* реклама не досмотрена/ошибка — без начисления */ });
+  } catch (e) { window.alert("Не удалось показать рекламу."); }
+}
+
 function renderShop() {
   renderEpochTabs("epoch-tabs-shop", renderShop);
   el("shop-gold-label").textContent = "🪙 " + SAVE.gold;
@@ -785,6 +817,27 @@ function renderShop() {
     }
     list.appendChild(row);
   });
+
+  // Абгрейды только за рекламу — никогда за золото
+  if (EPOCHS[SAVE.currentEpoch].adUpgradeDefs) {
+    Object.keys(EPOCHS[SAVE.currentEpoch].adUpgradeDefs).forEach((key) => {
+      const def = EPOCHS[SAVE.currentEpoch].adUpgradeDefs[key];
+      const lvl = EP().upgrades[key] || 0;
+      const maxed = lvl >= def.max;
+      const row = document.createElement("div");
+      row.className = "shop-row" + (maxed ? " disabled" : "");
+      row.innerHTML =
+        '<div class="icon">' + def.icon + '</div>' +
+        '<div class="info"><div class="name">' + def.name + ' · ур. ' + lvl + '</div>' +
+        '<div class="desc">' + def.desc + '<br>' +
+        '<span style="color:var(--text-dim);">' + upgradeDisplayValue(key, lvl) + '</span>' +
+        (maxed ? '' : ' <span style="color:var(--accent);">→ ' + upgradeDisplayValue(key, lvl + 1) + '</span>') +
+        '</div></div>' +
+        '<div class="price">' + (maxed ? "МАКС" : "📺") + '</div>';
+      if (!maxed) row.addEventListener("click", () => watchAdForUpgrade(key));
+      list.appendChild(row);
+    });
+  }
 
   // Покупки за Stars — показываем только во вкладке Средневековья, как договаривались,
   // но сами эффекты этих покупок действуют независимо от того, в какой эпохе играешь.
@@ -1158,9 +1211,7 @@ function endBattle(won) {
     primaryBtn.textContent = "Следующая эпоха";
     primaryBtn.onclick = () => {
       stopBattle();
-      SAVE.currentEpoch = nextEpochKey;
-      writeSave(SAVE);
-      applyEpoch(nextEpochKey);
+      switchEpoch(nextEpochKey);
       renderLevels();
       showScreen("screen-levels");
     };
