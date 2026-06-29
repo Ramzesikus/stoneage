@@ -35,11 +35,11 @@
   }
   .diff-btn.active { border-color: var(--accent); color: var(--text); font-weight: 700; }
   .legend-item {
-    flex: 1; background: var(--panel); border-radius: 10px; padding: 6px 4px;
-    display: flex; flex-direction: column; align-items: center; gap: 3px; text-align: center;
+    background: var(--panel); border-radius: 10px; padding: 6px 10px;
+    display: flex; align-items: center; gap: 10px; text-align: left;
   }
-  .legend-item .ic { font-size: 20px; }
-  .legend-item .desc { font-size: 9.5px; color: var(--text-dim); line-height: 1.25; }
+  .legend-item .ic { font-size: 20px; flex-shrink: 0; }
+  .legend-item .desc { font-size: 11px; color: var(--text-dim); line-height: 1.25; }
 
   #screen-levels { padding: 16px; gap: 10px; align-items: center; }
   #screen-levels h2 { margin: 6px 0 10px; }
@@ -66,6 +66,15 @@
   .shop-row .info .desc { font-size: 11px; color: var(--text-dim); }
   .shop-row .price { font-size: 13px; font-weight: 700; color: var(--accent); white-space: nowrap; }
 
+  #battle-sub-bar {
+    display: flex; justify-content: space-between; align-items: center;
+    background: #1a2614; padding: 4px 10px; font-size: 11px; color: var(--text-dim);
+    border-bottom: 1px solid #00000030;
+  }
+  #wave-counter, #kill-values { display: flex; gap: 8px; align-items: center; }
+  .mini-stat { display: flex; align-items: center; gap: 2px; }
+  .mini-stat .mi { font-size: 13px; }
+
   #battle-top {
     display: flex; align-items: center; justify-content: space-between;
     padding: 8px 12px; background: var(--panel); gap: 10px;
@@ -85,13 +94,32 @@
   .tent.player { left: 6px; }
   .tent.enemy { right: 6px; }
   .tent svg { width: 100%; height: 100%; }
+  .tent .tent-cracks-1, .tent .tent-cracks-2, .tent .tent-ruins { opacity: 0; }
+  .tent.dmg1 .tent-cracks-1 { opacity: 1; }
+  .tent.dmg2 .tent-cracks-1, .tent.dmg2 .tent-cracks-2 { opacity: 1; }
+  .tent.ruined .tent-intact, .tent.ruined .tent-cracks-1, .tent.ruined .tent-cracks-2 { opacity: 0; }
+  .tent.ruined .tent-ruins { opacity: 1; }
 
   .coin-fly {
     position: absolute; font-size: 18px; pointer-events: none; z-index: 50;
     transition: left 0.7s cubic-bezier(.2,.6,.3,1), top 0.7s cubic-bezier(.2,.6,.3,1), opacity 0.7s ease-in;
   }
 
-  #lane-wrap { flex: 1; position: relative; background: linear-gradient(180deg, #3a4a28, #5a6a38 55%, #6b5a3a); overflow: hidden; }
+  #lane-wrap {
+    flex: 1; position: relative; overflow: hidden;
+    background: linear-gradient(180deg, #2a3a5c 0%, #4a4a6e 55%, #3a3a2a 78%, #2a2a1a 100%);
+  }
+  #lane-wrap::before {
+    content: ""; position: absolute; top: 12%; right: 14%; width: 46px; height: 46px;
+    border-radius: 50%; background: radial-gradient(circle at 35% 35%, #f5f1de, #d8d4c0);
+    box-shadow: 0 0 24px rgba(245,241,222,0.35); pointer-events: none;
+  }
+  #lane-wrap::after {
+    content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 22%;
+    background: #1c1c12;
+    clip-path: polygon(0% 60%, 8% 40%, 16% 58%, 26% 35%, 36% 55%, 48% 30%, 58% 52%, 70% 38%, 82% 56%, 92% 42%, 100% 58%, 100% 100%, 0% 100%);
+    pointer-events: none;
+  }
   #lane-track { position: absolute; left: 0; right: 0; top: 50%; height: 4px; background: #00000022; transform: translateY(-50%); }
   .unit {
     position: absolute; top: 50%; width: 46px; height: 46px; margin-left: -23px; margin-top: -23px;
@@ -144,9 +172,10 @@
     <h1>🏔️ Каменный век</h1>
     <p>Племенные войны — отбей атаки и сломай вражескую базу</p>
     <div id="difficulty-row" style="display:flex; gap:8px; width:100%; max-width:300px;"></div>
-    <div id="unit-legend" style="display:flex; gap:8px; width:100%; max-width:320px; margin: 4px 0 6px;"></div>
+    <div id="unit-legend" style="display:flex; flex-direction:column; gap:6px; width:100%; max-width:320px; margin: 4px 0 6px;"></div>
     <button class="menu-btn" id="btn-go-levels">▶️ Играть <span class="gold" id="menu-gold"></span></button>
     <button class="menu-btn" id="btn-go-shop">🛒 Магазин улучшений</button>
+    <div class="back-link" id="btn-reset-progress" style="margin-top:8px;">↺ Начать заново (сбросить прогресс)</div>
   </div>
 
   <div class="screen" id="screen-levels">
@@ -165,6 +194,8 @@
   <div class="screen" id="screen-battle">
     <div id="battle-top">
       <div class="back-link" id="btn-exit-battle" style="margin:0; font-size:18px;">✕</div>
+      <div class="back-link" id="btn-battle-shop" style="margin:0; font-size:18px;">🛒</div>
+      <div class="back-link" id="btn-speed" style="margin:0; font-size:14px; font-weight:700;">1x</div>
       <div class="base-hp-wrap">
         <div class="base-hp-label">Твоя база</div>
         <div class="base-hp-track"><div class="base-hp-fill player" id="hp-player"></div></div>
@@ -179,13 +210,54 @@
       </div>
     </div>
 
+    <div id="battle-sub-bar">
+      <div id="wave-counter"></div>
+      <div id="kill-values"></div>
+    </div>
+
     <div id="lane-wrap">
       <div id="lane-track"></div>
-      <div class="tent player">
-        <svg viewBox="0 0 100 100"><path d="M 10 90 L 50 15 L 90 90 Z" fill="#3a8ad9" stroke="#16243a" stroke-width="6" stroke-linejoin="round"/><path d="M 38 90 L 50 55 L 62 90" fill="#16243a" stroke="#16243a" stroke-width="6" stroke-linejoin="round"/></svg>
+      <div class="tent player" id="tent-player">
+        <svg viewBox="0 0 100 100">
+          <g class="tent-intact">
+            <path d="M 10 90 L 50 15 L 90 90 Z" fill="#3a8ad9" stroke="#16243a" stroke-width="6" stroke-linejoin="round"/>
+            <path d="M 38 90 L 50 55 L 62 90" fill="#16243a" stroke="#16243a" stroke-width="6" stroke-linejoin="round"/>
+          </g>
+          <g class="tent-cracks-1" stroke="#0a1420" stroke-width="2.5" fill="none">
+            <path d="M 45 30 L 38 55 L 44 70"/>
+          </g>
+          <g class="tent-cracks-2" stroke="#0a1420" stroke-width="2.5" fill="none">
+            <path d="M 60 25 L 68 50 L 60 78"/>
+            <path d="M 30 60 L 42 80"/>
+          </g>
+          <g class="tent-ruins">
+            <path d="M 8 90 L 30 70 L 22 90 Z" fill="#6b5a44" stroke="#16243a" stroke-width="4"/>
+            <path d="M 35 90 L 55 60 L 70 90 Z" fill="#3a8ad9" stroke="#16243a" stroke-width="4"/>
+            <path d="M 72 90 L 88 78 L 92 90 Z" fill="#6b5a44" stroke="#16243a" stroke-width="4"/>
+            <line x1="15" y1="90" x2="92" y2="90" stroke="#16243a" stroke-width="4"/>
+          </g>
+        </svg>
       </div>
-      <div class="tent enemy">
-        <svg viewBox="0 0 100 100"><path d="M 10 90 L 50 15 L 90 90 Z" fill="#d9483a" stroke="#3a1410" stroke-width="6" stroke-linejoin="round"/><path d="M 38 90 L 50 55 L 62 90" fill="#3a1410" stroke="#3a1410" stroke-width="6" stroke-linejoin="round"/></svg>
+      <div class="tent enemy" id="tent-enemy">
+        <svg viewBox="0 0 100 100">
+          <g class="tent-intact">
+            <path d="M 10 90 L 50 15 L 90 90 Z" fill="#d9483a" stroke="#3a1410" stroke-width="6" stroke-linejoin="round"/>
+            <path d="M 38 90 L 50 55 L 62 90" fill="#3a1410" stroke="#3a1410" stroke-width="6" stroke-linejoin="round"/>
+          </g>
+          <g class="tent-cracks-1" stroke="#1a0805" stroke-width="2.5" fill="none">
+            <path d="M 45 30 L 38 55 L 44 70"/>
+          </g>
+          <g class="tent-cracks-2" stroke="#1a0805" stroke-width="2.5" fill="none">
+            <path d="M 60 25 L 68 50 L 60 78"/>
+            <path d="M 30 60 L 42 80"/>
+          </g>
+          <g class="tent-ruins">
+            <path d="M 8 90 L 30 70 L 22 90 Z" fill="#6b5a44" stroke="#3a1410" stroke-width="4"/>
+            <path d="M 35 90 L 55 60 L 70 90 Z" fill="#d9483a" stroke="#3a1410" stroke-width="4"/>
+            <path d="M 72 90 L 88 78 L 92 90 Z" fill="#6b5a44" stroke="#3a1410" stroke-width="4"/>
+            <line x1="15" y1="90" x2="92" y2="90" stroke="#3a1410" stroke-width="4"/>
+          </g>
+        </svg>
       </div>
       <div id="battle-result">
         <h2 id="result-title"></h2>
@@ -209,13 +281,13 @@
 /* ============ Конфигурация юнитов ============ */
 const UNIT_DEFS = {
   infantry: { name: "Дикарь с дубиной", icon: "🪓", cost: 10, hp: 30, atk: 6, speed: 0.55, range: 4,
-              attacks: ["ground"], isAir: false, alwaysUnlocked: true },
-  archer:   { name: "Лучник", icon: "🏹", cost: 18, hp: 12, atk: 4, speed: 0.45, range: 16,
-              attacks: ["ground", "air"], isAir: false, unlockCost: 45 },
+              categories: ["ground"], attacks: ["ground"], isAir: false, alwaysUnlocked: true },
+  archer:   { name: "Лучник", icon: "🏹", cost: 18, hp: 16, atk: 4, speed: 0.45, range: 16,
+              categories: ["ground", "ranged"], attacks: ["ground", "air"], isAir: false, unlockCost: 25 },
   mammoth:  { name: "Мамонт с наездником", icon: "🐘", cost: 45, hp: 110, atk: 11, speed: 0.28, range: 5,
-              attacks: ["ground"], isAir: false, unlockCost: 100 },
+              categories: ["ground"], attacks: ["ground"], isAir: false, unlockCost: 100 },
   flyer:    { name: "Птеродактиль с наездником", icon: "🦇", cost: 32, hp: 35, atk: 8, speed: 0.7, range: 4,
-              attacks: ["air"], isAir: true, unlockCost: 150 },
+              categories: ["air"], attacks: ["air", "ranged"], isAir: true, unlockCost: 150 },
 };
 const UNIT_ORDER = ["infantry", "archer", "mammoth", "flyer"];
 
@@ -223,39 +295,39 @@ const LEVELS = [
   { hpMul: 1.0, atkMul: 1.0, waves: [
     {t:1, type:"infantry"}, {t:6, type:"infantry"}, {t:12, type:"infantry"}, {t:18, type:"infantry"},
   ]},
-  { hpMul: 1.05, atkMul: 1.0, waves: [
+  { hpMul: 1.0, atkMul: 1.0, waves: [
     {t:1, type:"infantry"}, {t:6, type:"infantry"}, {t:11, type:"archer"}, {t:17, type:"infantry"},
     {t:23, type:"archer"}, {t:29, type:"infantry"},
   ]},
-  { hpMul: 1.1, atkMul: 1.05, waves: [
+  { hpMul: 1.05, atkMul: 1.02, waves: [
     {t:1, type:"infantry"}, {t:7, type:"archer"}, {t:14, type:"infantry"}, {t:20, type:"mammoth"},
     {t:28, type:"infantry"}, {t:34, type:"archer"},
   ]},
-  { hpMul: 1.2, atkMul: 1.1, waves: [
-    {t:1, type:"infantry"}, {t:6, type:"infantry"}, {t:12, type:"archer"}, {t:18, type:"flyer"},
-    {t:25, type:"mammoth"}, {t:32, type:"infantry"}, {t:38, type:"archer"},
+  { hpMul: 1.08, atkMul: 1.05, waves: [
+    {t:1, type:"infantry"}, {t:6, type:"infantry"}, {t:12, type:"archer"}, {t:18, type:"mammoth"},
+    {t:26, type:"infantry"}, {t:32, type:"archer"}, {t:38, type:"infantry"},
   ]},
-  { hpMul: 1.3, atkMul: 1.18, waves: [
+  { hpMul: 1.12, atkMul: 1.08, waves: [
     {t:1, type:"infantry"}, {t:6, type:"archer"}, {t:12, type:"flyer"}, {t:18, type:"mammoth"},
     {t:25, type:"infantry"}, {t:30, type:"infantry"}, {t:36, type:"archer"}, {t:42, type:"mammoth"},
   ]},
-  { hpMul: 1.42, atkMul: 1.25, waves: [
+  { hpMul: 1.18, atkMul: 1.12, waves: [
     {t:1, type:"infantry"}, {t:5, type:"infantry"}, {t:10, type:"archer"}, {t:15, type:"flyer"},
     {t:21, type:"mammoth"}, {t:27, type:"infantry"}, {t:32, type:"archer"}, {t:37, type:"flyer"},
     {t:43, type:"mammoth"},
   ]},
-  { hpMul: 1.55, atkMul: 1.32, waves: [
+  { hpMul: 1.35, atkMul: 1.22, waves: [
     {t:1, type:"infantry"}, {t:4, type:"infantry"}, {t:8, type:"archer"}, {t:12, type:"flyer"},
     {t:17, type:"mammoth"}, {t:22, type:"infantry"}, {t:26, type:"archer"}, {t:30, type:"flyer"},
-    {t:35, type:"mammoth"}, {t:40, type:"archer"}, {t:44, type:"mammoth"},
+    {t:35, type:"mammoth"}, {t:40, type:"archer"},
   ]},
 ];
 
 const SAVE_KEY = "stoneage_save_v1";
 const DIFFICULTIES = {
   easy:   { label: "Легко",    hpMul: 0.42, atkMul: 0.45, foodMul: 1.5 },
-  normal: { label: "Нормально", hpMul: 0.6,  atkMul: 0.6,  foodMul: 1.25 },
-  hard:   { label: "Сложно",   hpMul: 0.85, atkMul: 0.85, foodMul: 1.0 },
+  normal: { label: "Нормально", hpMul: 0.56, atkMul: 0.58, foodMul: 1.25 },
+  hard:   { label: "Сложно",   hpMul: 0.65, atkMul: 0.68, foodMul: 1.05 },
 };
 
 const DEFAULT_SAVE = {
@@ -295,6 +367,13 @@ const UPGRADE_DEFS = {
   baseHp:   { name: "HP твоей базы",       icon: "🏠", desc: "+20 HP базы",            baseCost: 15, mul: 1.3, max: 10 },
   foodRate: { name: "Скорость провизии",   icon: "🍖", desc: "+10% скорости накопления", baseCost: 15, mul: 1.35, max: 8 },
 };
+function upgradeDisplayValue(key, lvl) {
+  if (key === "dmg" || key === "hp") return "×" + (1 + 0.05 * lvl).toFixed(2);
+  if (key === "foodRate") return "×" + (1 + 0.1 * lvl).toFixed(2);
+  if (key === "baseHp") return "+" + (20 * lvl) + " HP";
+  return String(lvl);
+}
+
 function upgradeCost(key) {
   const def = UPGRADE_DEFS[key];
   const lvl = SAVE.upgrades[key] || 0;
@@ -314,6 +393,13 @@ function showScreen(id) {
 }
 document.querySelectorAll("[data-back]").forEach((b) => {
   b.addEventListener("click", () => {
+    if (battlePaused && battle) {
+      battlePaused = false;
+      showScreen("screen-battle");
+      if (battleTimer) clearInterval(battleTimer);
+      battleTimer = setInterval(battleTick, TICK_MS);
+      return;
+    }
     if (battleTimer) stopBattle();
     renderMenu();
     showScreen("screen-" + b.dataset.back);
@@ -363,6 +449,14 @@ function renderUnitLegend() {
 el("btn-go-levels").addEventListener("click", () => { renderLevels(); showScreen("screen-levels"); });
 el("btn-go-shop").addEventListener("click", () => { renderShop(); showScreen("screen-shop"); });
 
+el("btn-reset-progress").addEventListener("click", () => {
+  const ok = window.confirm("Точно сбросить весь прогресс — уровни, золото, прокачку? Это нельзя отменить.");
+  if (!ok) return;
+  SAVE = JSON.parse(JSON.stringify(DEFAULT_SAVE));
+  writeSave(SAVE);
+  renderMenu();
+});
+
 function renderLevels() {
   const row = el("level-row");
   row.innerHTML = "";
@@ -393,7 +487,10 @@ function renderShop() {
     row.innerHTML =
       '<div class="icon">' + def.icon + '</div>' +
       '<div class="info"><div class="name">' + def.name + ' · ур. ' + lvl + '</div>' +
-      '<div class="desc">' + def.desc + '</div></div>' +
+      '<div class="desc">' + def.desc + '<br>' +
+      '<span style="color:var(--text-dim);">' + upgradeDisplayValue(key, lvl) + '</span>' +
+      (maxed ? '' : ' <span style="color:var(--accent);">→ ' + upgradeDisplayValue(key, lvl + 1) + '</span>') +
+      '</div></div>' +
       '<div class="price">' + (maxed ? "МАКС" : "🪙 " + cost) + '</div>';
     if (!maxed) {
       row.addEventListener("click", () => {
@@ -432,7 +529,9 @@ function renderShop() {
 }
 
 /* ============ Боевой движок ============
-   Позиции юнитов — координата вдоль поля от 0 (твоя база) до 100 (вражеская база). */
+   Позиции юнитов — координата вдоль поля от 0 до 100. Базы стоят не на самом
+   краю, а с отступом — воины подходят к шатру и бьют его, а не пустой край экрана. */
+const BASE_POS = { player: 9, enemy: 91 };
 let battle = null;
 let battleTimer = null;
 const TICK_MS = 100;
@@ -456,14 +555,18 @@ function startBattle(levelIndex) {
     waveQueue: levelDef.waves.slice(),
     elapsed: 0,
     over: false,
-    laneCounters: { player: 0, enemy: 0 },
+    laneCounters: {},
+    speedMul: 1,
   };
+  el("btn-speed").textContent = "1x";
   el("result-btn").onclick = null;
   el("battle-result").classList.remove("show");
   el("battle-level-label").textContent = "Уровень " + (levelIndex + 1);
   updateGoldDisplay();
   el("lane-wrap").querySelectorAll(".unit").forEach((n) => n.remove());
   renderUnitButtons();
+  renderKillValues();
+  renderWaveCounter();
   renderBattleHp();
   showScreen("screen-battle");
 
@@ -477,10 +580,26 @@ function stopBattle() {
   battle = null;
 }
 
+let battlePaused = false;
+
 el("btn-exit-battle").addEventListener("click", () => {
   stopBattle();
+  battlePaused = false;
   renderMenu();
   showScreen("screen-menu");
+});
+
+el("btn-speed").addEventListener("click", () => {
+  if (!battle) return;
+  battle.speedMul = battle.speedMul >= 3 ? 1 : battle.speedMul + 1;
+  el("btn-speed").textContent = battle.speedMul + "x";
+});
+
+el("btn-battle-shop").addEventListener("click", () => {
+  if (battleTimer) { clearInterval(battleTimer); battleTimer = null; }
+  battlePaused = true;
+  renderShop();
+  showScreen("screen-shop");
 });
 
 function renderUnitButtons() {
@@ -506,26 +625,31 @@ function trySpawnPlayerUnit(key) {
   spawnUnit("player", key);
 }
 
-const LANE_OFFSETS = [0, -38, 38, -19, 19, -57, 57];
+const GROUND_LANE_OFFSETS = [4, 22, 40, 13, 31, 49, 58];
+const AIR_LANE_OFFSETS = [-20, -38, -56, -29, -47, -65];
 
 function spawnUnit(side, key) {
   const def = UNIT_DEFS[key];
   const isEnemy = side === "enemy";
   const mulHp = isEnemy ? battle.levelDef.hpMul * battle.diff.hpMul : hpMul();
   const mulAtk = isEnemy ? battle.levelDef.atkMul * battle.diff.atkMul : dmgMul();
-  const laneIdx = battle.laneCounters[side]++ % LANE_OFFSETS.length;
+  const laneGroup = (def.isAir ? "air" : "ground") + "_" + side;
+  battle.laneCounters[laneGroup] = (battle.laneCounters[laneGroup] || 0) + 1;
+  const offsets = def.isAir ? AIR_LANE_OFFSETS : GROUND_LANE_OFFSETS;
+  const laneIdx = (battle.laneCounters[laneGroup] - 1) % offsets.length;
   const unit = {
     id: battle.nextId++,
     side,
     type: key,
-    pos: isEnemy ? 100 : 0,
-    lane: LANE_OFFSETS[laneIdx],
+    pos: isEnemy ? BASE_POS.enemy : BASE_POS.player,
+    lane: offsets[laneIdx],
     hp: def.hp * mulHp,
     hpMax: def.hp * mulHp,
     atk: def.atk * mulAtk,
     speed: def.speed,
     range: def.range,
     attacks: def.attacks,
+    categories: def.categories,
     isAir: def.isAir,
     icon: def.icon,
     cooldown: 0,
@@ -552,8 +676,7 @@ function updateUnitEl(unit) {
 }
 
 function targetableBy(attacker, defender) {
-  if (defender.isAir) return attacker.attacks.includes("air");
-  return attacker.attacks.includes("ground");
+  return attacker.attacks.some((cat) => defender.categories.includes(cat));
 }
 
 function findNearestEnemy(unit) {
@@ -569,14 +692,16 @@ function findNearestEnemy(unit) {
 
 function battleTick() {
   if (!battle || battle.over) return;
-  battle.elapsed += TICK_MS / 1000;
+  const sp = battle.speedMul || 1;
+  battle.elapsed += (TICK_MS / 1000) * sp;
 
   while (battle.waveQueue.length && battle.waveQueue[0].t <= battle.elapsed) {
     const wave = battle.waveQueue.shift();
     spawnUnit("enemy", wave.type);
   }
+  renderWaveCounter();
 
-  battle.foodCycleProgress += (TICK_MS / 1000) / battle.foodCycleSeconds;
+  battle.foodCycleProgress += ((TICK_MS / 1000) * sp) / battle.foodCycleSeconds;
   while (battle.foodCycleProgress >= 1) {
     battle.foodCycleProgress -= 1;
     battle.food = Math.min(999, battle.food + 1);
@@ -585,7 +710,7 @@ function battleTick() {
   for (const unit of battle.units) {
     if (unit.hp <= 0) continue;
     const dir = unit.side === "player" ? 1 : -1;
-    const baseDist = unit.side === "player" ? (100 - unit.pos) : unit.pos;
+    const baseDist = unit.side === "player" ? (BASE_POS.enemy - unit.pos) : (unit.pos - BASE_POS.player);
     const { unit: target, dist } = findNearestEnemy(unit);
 
     const inRangeOfTarget = target && dist <= unit.range;
@@ -593,7 +718,7 @@ function battleTick() {
 
     if (inRangeOfTarget || inRangeOfBase) {
       if (unit.cooldown > 0) {
-        unit.cooldown -= TICK_MS;
+        unit.cooldown -= TICK_MS * sp;
       } else {
         unit.cooldown = 900;
         if (unit.el) { unit.el.classList.remove("attacking"); void unit.el.offsetWidth; unit.el.classList.add("attacking"); }
@@ -606,8 +731,8 @@ function battleTick() {
         }
       }
     } else {
-      unit.pos += dir * unit.speed * (TICK_MS / 100);
-      unit.pos = Math.max(0, Math.min(100, unit.pos));
+      unit.pos += dir * unit.speed * (TICK_MS / 100) * sp;
+      unit.pos = Math.max(BASE_POS.player, Math.min(BASE_POS.enemy, unit.pos));
     }
     updateUnitEl(unit);
   }
@@ -660,9 +785,32 @@ function onUnitKilled(victim, killer) {
   }
 }
 
+function renderWaveCounter() {
+  const counts = {};
+  battle.waveQueue.forEach((w) => { counts[w.type] = (counts[w.type] || 0) + 1; });
+  const wrap = el("wave-counter");
+  const parts = UNIT_ORDER.filter((k) => counts[k]).map((k) =>
+    '<div class="mini-stat"><span class="mi">' + UNIT_DEFS[k].icon + '</span>×' + counts[k] + '</div>');
+  wrap.innerHTML = parts.length ? ("Осталось: " + parts.join("")) : "Последние враги на поле!";
+}
+
+function renderKillValues() {
+  el("kill-values").innerHTML = UNIT_ORDER.map((k) =>
+    '<div class="mini-stat"><span class="mi">' + UNIT_DEFS[k].icon + '</span>🪙' + GOLD_PER_KILL[k] + '</div>').join("");
+}
+
 function renderBattleHp() {
   el("hp-player").style.width = Math.max(0, (battle.playerHp / battle.playerHpMax) * 100) + "%";
   el("hp-enemy").style.width = Math.max(0, (battle.enemyHp / battle.enemyHpMax) * 100) + "%";
+  updateTentDamage(el("tent-player"), battle.playerHp / battle.playerHpMax);
+  updateTentDamage(el("tent-enemy"), battle.enemyHp / battle.enemyHpMax);
+}
+
+function updateTentDamage(tentEl, hpFraction) {
+  tentEl.classList.remove("dmg1", "dmg2", "ruined");
+  if (hpFraction <= 0) tentEl.classList.add("ruined");
+  else if (hpFraction <= 0.35) tentEl.classList.add("dmg2");
+  else if (hpFraction <= 0.7) tentEl.classList.add("dmg1");
 }
 function renderFood() {
   el("food-num").textContent = Math.floor(battle.food);
@@ -700,6 +848,11 @@ function endBattle(won) {
     SAVE.clearedLevels = Math.min(LEVELS.length, SAVE.clearedLevels + 1);
   }
   writeSave(SAVE);
+
+  sendAnalytics(
+    (won ? "✅ Прошёл" : "❌ Проиграл") + " уровень " + (battle.levelIndex + 1) +
+    " (" + (DIFFICULTIES[SAVE.difficulty] || {}).label + ") — " + getPlayerLabel()
+  );
   updateGoldDisplay();
 
   const overlay = el("battle-result");
@@ -721,6 +874,50 @@ function endBattle(won) {
   }
   overlay.classList.add("show");
 }
+
+/* ============ Аналитика (без сервера, через Telegram Bot API) ============
+   ВАЖНО: токен бота виден любому, кто откроет исходный код страницы — это
+   нормально для личного/тестового проекта на небольшую аудиторию, но если
+   игра разойдётся широко, токен стоит спрятать за отдельным сервером-прокси,
+   а не держать прямо в клиентском коде. Для текущего масштаба — это ок. */
+const ANALYTICS_BOT_TOKEN = "8211831789:AAFHVmDgd4SNtANOXRETRB0lfEBF8tQkVIQ";
+const ANALYTICS_CHAT_ID = "-5507283361";
+const sessionStartedAt = Date.now();
+
+function getPlayerLabel() {
+  try {
+    const u = window.Telegram && window.Telegram.WebApp &&
+      window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user;
+    if (u) {
+      return (u.first_name || "") + (u.last_name ? " " + u.last_name : "") +
+        (u.username ? " (@" + u.username + ")" : "") + " [id" + u.id + "]";
+    }
+  } catch (e) { /* нет доступа к Telegram-контексту — открыто не из Telegram */ }
+  return "Неизвестный игрок (не через Telegram)";
+}
+
+function sendAnalytics(text, keepalive) {
+  try {
+    fetch("https://api.telegram.org/bot" + ANALYTICS_BOT_TOKEN + "/sendMessage", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: ANALYTICS_CHAT_ID, text: text }),
+      keepalive: !!keepalive,
+    }).catch(() => {}); // аналитика не должна мешать игре, даже если сеть недоступна
+  } catch (e) { }
+}
+
+sendAnalytics("🎮 Зашёл: " + getPlayerLabel());
+
+window.addEventListener("pagehide", () => {
+  const minutes = ((Date.now() - sessionStartedAt) / 60000).toFixed(1);
+  sendAnalytics(
+    "🚪 Вышел: " + getPlayerLabel() +
+    " | сессия: " + minutes + " мин" +
+    " | пройдено уровней: " + SAVE.clearedLevels + "/" + LEVELS.length,
+    true
+  );
+});
 
 /* ============ Инициализация Telegram WebApp ============ */
 if (window.Telegram && window.Telegram.WebApp) {
