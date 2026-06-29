@@ -78,13 +78,13 @@
 
   #wave-counter, #kill-values {
     position: absolute; top: 8px; z-index: 20;
-    background: #00000055; border-radius: 8px; padding: 5px 7px;
-    font-size: 10px; color: var(--text); line-height: 1.6;
+    background: #00000055; border-radius: 8px; padding: 7px 10px;
+    font-size: 14px; color: var(--text); line-height: 1.7;
   }
   #wave-counter { left: 8px; }
   #kill-values { right: 8px; text-align: right; }
   .mini-stat-line { display: block; }
-  .mini-stat-label { color: var(--text-dim); margin-bottom: 2px; display: block; }
+  .mini-stat-label { color: var(--text-dim); margin-bottom: 3px; display: block; font-size: 11px; }
   #battle-top {
     display: flex; align-items: center; justify-content: space-between;
     padding: 8px 12px; background: var(--panel); gap: 10px;
@@ -120,22 +120,11 @@
     flex: 1; position: relative; overflow: hidden;
     background: linear-gradient(180deg, #2a3a5c 0%, #4a5a7a 30%, #5a6a5a 42%, #3a3a2a 100%);
   }
-  #lane-wrap::before {
-    content: ""; position: absolute; top: 8%; right: 12%; width: 40px; height: 40px;
-    border-radius: 50%; background: radial-gradient(circle at 35% 35%, #f5f1de, #d8d4c0);
-    box-shadow: 0 0 20px rgba(245,241,222,0.3); pointer-events: none;
-  }
-  #lane-wrap::after {
-    content: ""; position: absolute; top: 0; left: 0; right: 0; height: 18%;
-    background: #23304a; opacity: 0.55;
-    clip-path: polygon(0% 75%, 8% 40%, 15% 65%, 24% 22%, 34% 58%, 45% 32%, 55% 62%, 66% 26%, 76% 58%, 87% 38%, 100% 68%, 100% 0%, 0% 0%);
-    pointer-events: none;
-  }
-  #lane-track { position: absolute; left: 0; right: 0; top: 50%; height: 4px; background: #00000022; transform: translateY(-50%); }
+  #hills-svg { position: absolute; top: 0; left: 0; width: 100%; height: 18%; pointer-events: none; }
   .unit {
-    position: absolute; top: 50%; width: 46px; height: 46px; margin-left: -23px; margin-top: -23px;
+    position: absolute; width: 46px; height: 46px; margin-left: -23px;
     border-radius: 50%; display: flex; align-items: center; justify-content: center;
-    font-size: 24px; transition: left 0.15s linear, top 0.2s ease; border: 3px solid #00000030;
+    font-size: 24px; transition: left 0.15s linear, bottom 0.2s ease; border: 3px solid #00000030;
   }
   .unit.side-player { background: var(--player); }
   .unit.side-enemy { background: var(--enemy); }
@@ -220,7 +209,13 @@
     </div>
 
     <div id="lane-wrap">
-      <div id="lane-track"></div>
+      <svg id="hills-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+        <path d="M0,75 L8,40 L15,65 L24,22 L34,58 L45,32 L55,62 L66,26 L76,58 L87,38 L100,68 L100,100 L0,100 Z"
+              fill="#1a2440" opacity="0.85"/>
+        <polyline points="0,75 8,40 15,65 24,22 34,58 45,32 55,62 66,26 76,58 87,38 100,68"
+              fill="none" stroke="#aab8d8" stroke-width="1.4" opacity="0.8"/>
+      </svg>
+
 
       <div id="battle-controls">
         <button class="ctrl-btn" id="btn-exit-battle">✕</button>
@@ -649,8 +644,8 @@ function trySpawnPlayerUnit(key) {
   spawnUnit("player", key);
 }
 
-const GROUND_LANE_OFFSETS = [60, 78, 96, 51, 69, 87, 105];
-const AIR_LANE_OFFSETS = [-8, -26, -44, -17, -35];
+const GROUND_LANE_OFFSETS = [10, 17, 24, 13, 20, 27, 33];
+const AIR_LANE_OFFSETS = [30, 38, 46, 34, 42];
 
 function spawnUnit(side, key) {
   const def = UNIT_DEFS[key];
@@ -686,7 +681,7 @@ function spawnUnit(side, key) {
 function mountUnitEl(unit) {
   const node = document.createElement("div");
   node.className = "unit side-" + unit.side;
-  node.style.top = "calc(50% + " + unit.lane + "px)";
+  node.style.bottom = unit.lane + "%";
   node.innerHTML = '<div class="hp-track"><div class="hp-fill"></div></div><span>' + unit.icon + '</span>';
   el("lane-wrap").appendChild(node);
   unit.el = node;
