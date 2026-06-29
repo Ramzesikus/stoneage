@@ -66,12 +66,22 @@
   .shop-row .info .desc { font-size: 11px; color: var(--text-dim); }
   .shop-row .price { font-size: 13px; font-weight: 700; color: var(--accent); white-space: nowrap; }
 
+  #battle-controls {
+    display: flex; gap: 14px; justify-content: center; align-items: center;
+    background: #1a2614; padding: 8px 10px;
+  }
+  .ctrl-btn {
+    border: none; border-radius: 10px; background: var(--panel); color: var(--text);
+    width: 44px; height: 36px; font-size: 17px; cursor: pointer;
+  }
+  .ctrl-btn-shop { font-size: 22px; width: 52px; height: 40px; }
+
   #battle-sub-bar {
-    display: flex; justify-content: space-between; align-items: center;
-    background: #1a2614; padding: 4px 10px; font-size: 11px; color: var(--text-dim);
+    display: flex; flex-direction: column; gap: 4px; align-items: flex-start;
+    background: #1a2614; padding: 6px 10px; font-size: 11px; color: var(--text-dim);
     border-bottom: 1px solid #00000030;
   }
-  #wave-counter, #kill-values { display: flex; gap: 8px; align-items: center; }
+  #wave-counter, #kill-values { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
   .mini-stat { display: flex; align-items: center; gap: 2px; }
   .mini-stat .mi { font-size: 13px; }
 
@@ -89,10 +99,11 @@
   #battle-gold { font-size: 13px; color: var(--accent); font-weight: 700; text-align: center; white-space: nowrap; }
 
   .tent {
-    position: absolute; top: 50%; transform: translateY(-50%); width: 70px; height: 70px; pointer-events: none;
+    position: absolute; top: 50%; transform: translateY(-50%); width: 9%; height: 64px;
+    min-width: 56px; max-width: 80px; pointer-events: none;
   }
-  .tent.player { left: 6px; }
-  .tent.enemy { right: 6px; }
+  .tent.player { left: 1%; }
+  .tent.enemy { right: 1%; }
   .tent svg { width: 100%; height: 100%; }
   .tent .tent-cracks-1, .tent .tent-cracks-2, .tent .tent-ruins { opacity: 0; }
   .tent.dmg1 .tent-cracks-1 { opacity: 1; }
@@ -155,6 +166,7 @@
   #battle-result {
     position: absolute; inset: 0; background: #000000c0; display: none;
     align-items: center; justify-content: center; flex-direction: column; gap: 16px; text-align: center; padding: 20px;
+    z-index: 100;
   }
   #battle-result.show { display: flex; }
   #battle-result h2 { font-size: 26px; margin: 0; }
@@ -193,9 +205,6 @@
 
   <div class="screen" id="screen-battle">
     <div id="battle-top">
-      <div class="back-link" id="btn-exit-battle" style="margin:0; font-size:18px;">✕</div>
-      <div class="back-link" id="btn-battle-shop" style="margin:0; font-size:18px;">🛒</div>
-      <div class="back-link" id="btn-speed" style="margin:0; font-size:14px; font-weight:700;">1x</div>
       <div class="base-hp-wrap">
         <div class="base-hp-label">Твоя база</div>
         <div class="base-hp-track"><div class="base-hp-fill player" id="hp-player"></div></div>
@@ -208,6 +217,12 @@
         <div class="base-hp-label" style="text-align:right;">Вражеская база</div>
         <div class="base-hp-track"><div class="base-hp-fill enemy" id="hp-enemy"></div></div>
       </div>
+    </div>
+
+    <div id="battle-controls">
+      <button class="ctrl-btn" id="btn-exit-battle">✕</button>
+      <button class="ctrl-btn ctrl-btn-shop" id="btn-battle-shop">🛒</button>
+      <button class="ctrl-btn" id="btn-speed">1x</button>
     </div>
 
     <div id="battle-sub-bar">
@@ -512,7 +527,7 @@ function renderShop() {
     row.className = "shop-row" + (unlocked || SAVE.gold < cost ? " disabled" : "");
     row.innerHTML =
       '<div class="icon">' + def.icon + '</div>' +
-      '<div class="info"><div class="name">' + def.name + '</div>' +
+      '<div class="info"><div class="name">' + def.name + ' · разовая разблокировка</div>' +
       '<div class="desc">' + (unlocked ? "Открыт" : "Открыть нового юнита") + '</div></div>' +
       '<div class="price">' + (unlocked ? "✅" : "🪙 " + cost) + '</div>';
     if (!unlocked) {
@@ -531,7 +546,7 @@ function renderShop() {
 /* ============ Боевой движок ============
    Позиции юнитов — координата вдоль поля от 0 до 100. Базы стоят не на самом
    краю, а с отступом — воины подходят к шатру и бьют его, а не пустой край экрана. */
-const BASE_POS = { player: 9, enemy: 91 };
+const BASE_POS = { player: 15, enemy: 85 };
 let battle = null;
 let battleTimer = null;
 const TICK_MS = 100;
