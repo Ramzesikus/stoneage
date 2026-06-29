@@ -164,6 +164,19 @@
     padding: 12px 28px; border-radius: 12px; border: none; background: var(--accent);
     color: #2a2010; font-weight: 700; font-size: 15px; cursor: pointer;
   }
+  .result-btn-secondary { background: var(--panel); color: var(--text); font-weight: 500; font-size: 14px; }
+
+  .unit.side-enemy > span:last-child { display: inline-block; transform: scaleX(-1); }
+
+  .epoch-tabs { display: flex; gap: 8px; width: 100%; max-width: 320px; margin-bottom: 4px; }
+  .epoch-tab {
+    flex: 1; padding: 8px 4px; border-radius: 10px; border: 2px solid transparent;
+    background: var(--panel); color: var(--text-dim); font-size: 12px; cursor: pointer;
+  }
+  .epoch-tab.active { border-color: var(--accent); color: var(--text); font-weight: 700; }
+  .epoch-tab.locked { opacity: 0.35; cursor: default; }
+
+  .stars-row .price { color: #ffd966; }
 </style>
 </head>
 <body>
@@ -175,18 +188,20 @@
     <div id="difficulty-row" style="display:flex; gap:8px; width:100%; max-width:300px;"></div>
     <div id="unit-legend" style="display:flex; flex-direction:column; gap:6px; width:100%; max-width:320px; margin: 4px 0 6px;"></div>
     <button class="menu-btn" id="btn-go-levels">▶️ Играть <span class="gold" id="menu-gold"></span></button>
-    <button class="menu-btn" id="btn-go-shop">🛒 Магазин улучшений</button>
+    <button class="menu-btn" id="btn-go-shop">🛒 Магазин</button>
     <div class="back-link" id="btn-reset-progress" style="margin-top:8px;">↺ Начать заново (сбросить прогресс)</div>
   </div>
 
   <div class="screen" id="screen-levels">
     <h2>Выбор уровня</h2>
+    <div class="epoch-tabs" id="epoch-tabs-levels"></div>
     <div class="level-row" id="level-row"></div>
     <div class="back-link" data-back="menu">‹ В меню</div>
   </div>
 
   <div class="screen" id="screen-shop">
     <h2>Магазин</h2>
+    <div class="epoch-tabs" id="epoch-tabs-shop"></div>
     <div class="shop-gold" id="shop-gold-label"></div>
     <div id="shop-list"></div>
     <div class="back-link" data-back="menu" style="text-align:center;">‹ В меню</div>
@@ -217,58 +232,21 @@
 
       <div id="battle-controls">
         <button class="ctrl-btn" id="btn-exit-battle">✕</button>
-        <button class="ctrl-btn ctrl-btn-shop" id="btn-battle-shop">🛒</button>
         <button class="ctrl-btn" id="btn-speed">1x</button>
       </div>
       <div id="wave-counter"></div>
       <div id="kill-values"></div>
 
-      <div class="tent player" id="tent-player">
-        <svg viewBox="0 0 100 100">
-          <g class="tent-intact">
-            <path d="M 10 90 L 50 15 L 90 90 Z" fill="#3a8ad9" stroke="#16243a" stroke-width="6" stroke-linejoin="round"/>
-            <path d="M 38 90 L 50 55 L 62 90" fill="#16243a" stroke="#16243a" stroke-width="6" stroke-linejoin="round"/>
-          </g>
-          <g class="tent-cracks-1" stroke="#0a1420" stroke-width="2.5" fill="none">
-            <path d="M 45 30 L 38 55 L 44 70"/>
-          </g>
-          <g class="tent-cracks-2" stroke="#0a1420" stroke-width="2.5" fill="none">
-            <path d="M 60 25 L 68 50 L 60 78"/>
-            <path d="M 30 60 L 42 80"/>
-          </g>
-          <g class="tent-ruins">
-            <path d="M 8 90 L 30 70 L 22 90 Z" fill="#6b5a44" stroke="#16243a" stroke-width="4"/>
-            <path d="M 35 90 L 55 60 L 70 90 Z" fill="#3a8ad9" stroke="#16243a" stroke-width="4"/>
-            <path d="M 72 90 L 88 78 L 92 90 Z" fill="#6b5a44" stroke="#16243a" stroke-width="4"/>
-            <line x1="15" y1="90" x2="92" y2="90" stroke="#16243a" stroke-width="4"/>
-          </g>
-        </svg>
-      </div>
-      <div class="tent enemy" id="tent-enemy">
-        <svg viewBox="0 0 100 100">
-          <g class="tent-intact">
-            <path d="M 10 90 L 50 15 L 90 90 Z" fill="#d9483a" stroke="#3a1410" stroke-width="6" stroke-linejoin="round"/>
-            <path d="M 38 90 L 50 55 L 62 90" fill="#3a1410" stroke="#3a1410" stroke-width="6" stroke-linejoin="round"/>
-          </g>
-          <g class="tent-cracks-1" stroke="#1a0805" stroke-width="2.5" fill="none">
-            <path d="M 45 30 L 38 55 L 44 70"/>
-          </g>
-          <g class="tent-cracks-2" stroke="#1a0805" stroke-width="2.5" fill="none">
-            <path d="M 60 25 L 68 50 L 60 78"/>
-            <path d="M 30 60 L 42 80"/>
-          </g>
-          <g class="tent-ruins">
-            <path d="M 8 90 L 30 70 L 22 90 Z" fill="#6b5a44" stroke="#3a1410" stroke-width="4"/>
-            <path d="M 35 90 L 55 60 L 70 90 Z" fill="#d9483a" stroke="#3a1410" stroke-width="4"/>
-            <path d="M 72 90 L 88 78 L 92 90 Z" fill="#6b5a44" stroke="#3a1410" stroke-width="4"/>
-            <line x1="15" y1="90" x2="92" y2="90" stroke="#3a1410" stroke-width="4"/>
-          </g>
-        </svg>
-      </div>
+      <div class="tent player" id="tent-player"></div>
+      <div class="tent enemy" id="tent-enemy"></div>
       <div id="battle-result">
         <h2 id="result-title"></h2>
         <p id="result-sub"></p>
-        <button class="result-btn" id="result-btn"></button>
+        <div style="display:flex; flex-direction:column; gap:10px; width:100%; max-width:260px;">
+          <button class="result-btn" id="result-btn-primary"></button>
+          <button class="result-btn result-btn-secondary" id="result-btn-shop">🛒 Магазин</button>
+          <button class="result-btn result-btn-secondary" id="result-btn-menu">‹ В меню</button>
+        </div>
       </div>
     </div>
 
@@ -284,8 +262,8 @@
 </div>
 
 <script>
-/* ============ Конфигурация юнитов ============ */
-const UNIT_DEFS = {
+/* ============ Конфигурация: Каменный век ============ */
+const STONE_UNIT_DEFS = {
   infantry: { name: "Дикарь с дубиной", icon: "🪓", cost: 10, hp: 30, atk: 6, speed: 0.55, range: 4,
               categories: ["ground"], attacks: ["ground"], isAir: false, alwaysUnlocked: true },
   archer:   { name: "Лучник", icon: "🏹", cost: 18, hp: 16, atk: 4, speed: 0.45, range: 16,
@@ -295,9 +273,9 @@ const UNIT_DEFS = {
   flyer:    { name: "Птеродактиль с наездником", icon: "🦇", cost: 32, hp: 35, atk: 8, speed: 0.7, range: 4,
               categories: ["air"], attacks: ["air", "ranged"], isAir: true, unlockCost: 150 },
 };
-const UNIT_ORDER = ["infantry", "archer", "mammoth", "flyer"];
+const STONE_UNIT_ORDER = ["infantry", "archer", "mammoth", "flyer"];
 
-const LEVELS = [
+const STONE_LEVELS = [
   { hpMul: 1.0, atkMul: 1.0, waves: [
     {t:1, type:"infantry"}, {t:6, type:"infantry"}, {t:12, type:"infantry"}, {t:18, type:"infantry"},
   ]},
@@ -329,20 +307,200 @@ const LEVELS = [
   ]},
 ];
 
-const SAVE_KEY = "stoneage_save_v1";
+const STONE_GOLD_PER_KILL = { infantry: 5, archer: 6, mammoth: 16, flyer: 10 };
+
+const STONE_LEGEND = {
+  infantry: "ближний бой, дёшево, в больших количествах",
+  archer:   "бьёт землю и воздух, но хрупкий",
+  mammoth:  "танк: много HP, держит линию",
+  flyer:    "летает, неуязвим для пехоты и танка — достаёт только лучник",
+};
+
+/* ============ Конфигурация: Средневековье ============ */
+const MEDIEVAL_UNIT_DEFS = {
+  swordsman: { name: "Меченосец", icon: "⚔️", cost: 12, hp: 34, atk: 7, speed: 0.55, range: 4,
+               categories: ["ground"], attacks: ["ground"], isAir: false, alwaysUnlocked: true },
+  crossbow:  { name: "Арбалетчик", icon: "🏹", cost: 20, hp: 18, atk: 5, speed: 0.45, range: 16,
+               categories: ["ground", "ranged"], attacks: ["ground", "air"], isAir: false, unlockCost: 30 },
+  knight:    { name: "Рыцарь на коне", icon: "🐎", cost: 50, hp: 130, atk: 13, speed: 0.3, range: 5,
+               categories: ["ground"], attacks: ["ground"], isAir: false, unlockCost: 110 },
+  dragon:    { name: "Дракон с наездником", icon: "🐉", cost: 36, hp: 40, atk: 9, speed: 0.7, range: 4,
+               categories: ["air"], attacks: ["air", "ranged"], isAir: true, unlockCost: 160 },
+};
+const MEDIEVAL_UNIT_ORDER = ["swordsman", "crossbow", "knight", "dragon"];
+
+const MEDIEVAL_LEVELS = [
+  { hpMul: 1.0, atkMul: 1.0, waves: [
+    {t:1, type:"swordsman"}, {t:6, type:"swordsman"}, {t:12, type:"swordsman"}, {t:18, type:"swordsman"},
+  ]},
+  { hpMul: 1.0, atkMul: 1.0, waves: [
+    {t:1, type:"swordsman"}, {t:6, type:"swordsman"}, {t:11, type:"crossbow"}, {t:17, type:"swordsman"},
+    {t:23, type:"crossbow"}, {t:29, type:"swordsman"},
+  ]},
+  { hpMul: 1.05, atkMul: 1.02, waves: [
+    {t:1, type:"swordsman"}, {t:7, type:"crossbow"}, {t:14, type:"swordsman"}, {t:20, type:"knight"},
+    {t:28, type:"swordsman"}, {t:34, type:"crossbow"},
+  ]},
+  { hpMul: 1.08, atkMul: 1.05, waves: [
+    {t:1, type:"swordsman"}, {t:6, type:"swordsman"}, {t:12, type:"crossbow"}, {t:18, type:"knight"},
+    {t:26, type:"swordsman"}, {t:32, type:"crossbow"}, {t:38, type:"swordsman"},
+  ]},
+  { hpMul: 1.12, atkMul: 1.08, waves: [
+    {t:1, type:"swordsman"}, {t:6, type:"crossbow"}, {t:12, type:"dragon"}, {t:18, type:"knight"},
+    {t:25, type:"swordsman"}, {t:30, type:"swordsman"}, {t:36, type:"crossbow"}, {t:42, type:"knight"},
+  ]},
+  { hpMul: 1.18, atkMul: 1.12, waves: [
+    {t:1, type:"swordsman"}, {t:5, type:"swordsman"}, {t:10, type:"crossbow"}, {t:15, type:"dragon"},
+    {t:21, type:"knight"}, {t:27, type:"swordsman"}, {t:32, type:"crossbow"}, {t:37, type:"dragon"},
+    {t:43, type:"knight"},
+  ]},
+  { hpMul: 1.4, atkMul: 1.25, waves: [
+    {t:1, type:"swordsman"}, {t:4, type:"swordsman"}, {t:8, type:"crossbow"}, {t:12, type:"dragon"},
+    {t:17, type:"knight"}, {t:22, type:"swordsman"}, {t:26, type:"crossbow"}, {t:30, type:"dragon"},
+    {t:35, type:"knight"}, {t:40, type:"crossbow"},
+  ]},
+];
+
+const MEDIEVAL_GOLD_PER_KILL = { swordsman: 6, crossbow: 8, knight: 20, dragon: 13 };
+
+const MEDIEVAL_LEGEND = {
+  swordsman: "ближний бой, дёшево, в больших количествах",
+  crossbow:  "бьёт землю и воздух, но хрупкий",
+  knight:    "танк: много HP, держит линию",
+  dragon:    "летает, неуязвим для меченосца и рыцаря — достаёт только арбалетчик",
+};
+
+/* ============ Прокачки: общие 4 + новые медиевальные ============ */
+const BASE_UPGRADE_DEFS = {
+  dmg:      { name: "Урон юнитов",        icon: "💪", desc: "+5% урона всех юнитов", baseCost: 18, mul: 1.35, max: 12 },
+  hp:       { name: "Живучесть юнитов",   icon: "❤️", desc: "+5% HP всех юнитов",    baseCost: 18, mul: 1.35, max: 12 },
+  baseHp:   { name: "HP твоей базы",       icon: "🏠", desc: "+20 HP базы",            baseCost: 15, mul: 1.3, max: 10 },
+  foodRate: { name: "Скорость провизии",   icon: "🍖", desc: "+10% скорости накопления", baseCost: 15, mul: 1.35, max: 8 },
+};
+
+const MEDIEVAL_EXTRA_UPGRADE_DEFS = {
+  defense:   { name: "Защита базы",     icon: "🛡️", desc: "-4% входящего урона по твоей базе", baseCost: 20, mul: 1.4, max: 8 },
+  unitSpeed: { name: "Скорость юнитов", icon: "🥾", desc: "+5% скорости передвижения юнитов",   baseCost: 20, mul: 1.35, max: 8 },
+  crit:      { name: "Шанс крита",      icon: "🎯", desc: "+4% шанс удвоенного урона",          baseCost: 25, mul: 1.4, max: 8 },
+};
+
+const MEDIEVAL_UPGRADE_DEFS = Object.assign({}, BASE_UPGRADE_DEFS, MEDIEVAL_EXTRA_UPGRADE_DEFS);
+
+/* Покупки за Telegram Stars — доступны только во вкладке Средневековья,
+   но эффект применяется глобально (не привязан к эпохе), и НЕ сбрасывается
+   кнопкой "Начать заново". */
+const STARS_UPGRADE_DEFS = {
+  startFood: { name: "Стартовая провизия", icon: "🍗", desc: "+10 провизии в начале каждого боя, навсегда", costStars: 60 },
+  bonusGold: { name: "Доп. золото",        icon: "💰", desc: "+20% золота за каждое убийство, навсегда",    costStars: 90 },
+};
+
+function upgradeDisplayValue(key, lvl) {
+  if (key === "dmg" || key === "hp") return "×" + (1 + 0.05 * lvl).toFixed(2);
+  if (key === "foodRate") return "×" + (1 + 0.1 * lvl).toFixed(2);
+  if (key === "baseHp") return "+" + (20 * lvl) + " HP";
+  if (key === "defense") return "-" + (4 * lvl) + "%";
+  if (key === "unitSpeed") return "×" + (1 + 0.05 * lvl).toFixed(2);
+  if (key === "crit") return (4 * lvl) + "%";
+  return String(lvl);
+}
+
+/* ============ Реестр эпох ============ */
+const EPOCHS = {
+  stone: {
+    name: "Каменный век", tabIcon: "🪓",
+    unitDefs: STONE_UNIT_DEFS, unitOrder: STONE_UNIT_ORDER, levels: STONE_LEVELS,
+    goldPerKill: STONE_GOLD_PER_KILL, upgradeDefs: BASE_UPGRADE_DEFS, legend: STONE_LEGEND,
+    baseSvg: tentSvg,
+  },
+  medieval: {
+    name: "Средневековье", tabIcon: "⚔️",
+    unitDefs: MEDIEVAL_UNIT_DEFS, unitOrder: MEDIEVAL_UNIT_ORDER, levels: MEDIEVAL_LEVELS,
+    goldPerKill: MEDIEVAL_GOLD_PER_KILL, upgradeDefs: MEDIEVAL_UPGRADE_DEFS, legend: MEDIEVAL_LEGEND,
+    baseSvg: castleSvg,
+  },
+};
+const EPOCH_ORDER = ["stone", "medieval"];
+
+/* ============ SVG-шаблоны баз (шатёр / замок) ============ */
+function tentSvg(main, dark) {
+  return '<svg viewBox="0 0 100 100">' +
+    '<g class="tent-intact">' +
+    '<path d="M 10 90 L 50 15 L 90 90 Z" fill="' + main + '" stroke="' + dark + '" stroke-width="6" stroke-linejoin="round"/>' +
+    '<path d="M 38 90 L 50 55 L 62 90" fill="' + dark + '" stroke="' + dark + '" stroke-width="6" stroke-linejoin="round"/>' +
+    '</g>' +
+    '<g class="tent-cracks-1" stroke="' + dark + '" stroke-width="2.5" fill="none"><path d="M 45 30 L 38 55 L 44 70"/></g>' +
+    '<g class="tent-cracks-2" stroke="' + dark + '" stroke-width="2.5" fill="none"><path d="M 60 25 L 68 50 L 60 78"/><path d="M 30 60 L 42 80"/></g>' +
+    '<g class="tent-ruins">' +
+    '<path d="M 8 90 L 30 70 L 22 90 Z" fill="#6b5a44" stroke="' + dark + '" stroke-width="4"/>' +
+    '<path d="M 35 90 L 55 60 L 70 90 Z" fill="' + main + '" stroke="' + dark + '" stroke-width="4"/>' +
+    '<path d="M 72 90 L 88 78 L 92 90 Z" fill="#6b5a44" stroke="' + dark + '" stroke-width="4"/>' +
+    '<line x1="15" y1="90" x2="92" y2="90" stroke="' + dark + '" stroke-width="4"/>' +
+    '</g></svg>';
+}
+
+function castleSvg(main, dark) {
+  return '<svg viewBox="0 0 100 100">' +
+    '<g class="tent-intact">' +
+    '<rect x="15" y="35" width="70" height="55" fill="' + main + '" stroke="' + dark + '" stroke-width="6"/>' +
+    '<rect x="13" y="18" width="16" height="20" fill="' + main + '" stroke="' + dark + '" stroke-width="5"/>' +
+    '<rect x="71" y="18" width="16" height="20" fill="' + main + '" stroke="' + dark + '" stroke-width="5"/>' +
+    '<rect x="42" y="20" width="16" height="18" fill="' + main + '" stroke="' + dark + '" stroke-width="5"/>' +
+    '<path d="M42 90 L42 60 Q50 52 58 60 L58 90 Z" fill="' + dark + '" stroke="' + dark + '" stroke-width="4"/>' +
+    '</g>' +
+    '<g class="tent-cracks-1" stroke="' + dark + '" stroke-width="2.5" fill="none"><path d="M30 50 L25 70 L32 88"/></g>' +
+    '<g class="tent-cracks-2" stroke="' + dark + '" stroke-width="2.5" fill="none"><path d="M65 45 L72 65 L64 88"/></g>' +
+    '<g class="tent-ruins">' +
+    '<path d="M10 90 L28 65 L20 90 Z" fill="#6b5a44" stroke="' + dark + '" stroke-width="4"/>' +
+    '<path d="M35 90 L52 55 L68 90 Z" fill="' + main + '" stroke="' + dark + '" stroke-width="4"/>' +
+    '<path d="M75 90 L88 72 L92 90 Z" fill="#6b5a44" stroke="' + dark + '" stroke-width="4"/>' +
+    '<line x1="8" y1="90" x2="92" y2="90" stroke="' + dark + '" stroke-width="4"/>' +
+    '</g></svg>';
+}
+
+/* Текущие активные конфиги — переключаются applyEpoch() при смене вкладки эпохи.
+   Это намеренно `let`, а не `const`: вся остальная логика обращается к ним
+   по этим именам и не должна знать про эпохи напрямую. */
+let UNIT_DEFS, UNIT_ORDER, LEVELS, GOLD_PER_KILL, UPGRADE_DEFS, UNIT_LEGEND_TEXT, baseSvgFn;
+
+function applyEpoch(key) {
+  const ep = EPOCHS[key];
+  UNIT_DEFS = ep.unitDefs;
+  UNIT_ORDER = ep.unitOrder;
+  LEVELS = ep.levels;
+  GOLD_PER_KILL = ep.goldPerKill;
+  UPGRADE_DEFS = ep.upgradeDefs;
+  UNIT_LEGEND_TEXT = ep.legend;
+  baseSvgFn = ep.baseSvg;
+}
+
+/* ============ Сохранение ============ */
+const SAVE_KEY = "stoneage_save_v2";
+const SAVE_KEY_OLD = "stoneage_save_v1"; // формат до введения эпох — для миграции
+
 const DIFFICULTIES = {
   easy:   { label: "Легко",    hpMul: 0.42, atkMul: 0.45, foodMul: 1.5 },
   normal: { label: "Нормально", hpMul: 0.56, atkMul: 0.58, foodMul: 1.25 },
-  hard:   { label: "Сложно",   hpMul: 0.65, atkMul: 0.68, foodMul: 1.05 },
+  hard:   { label: "Сложно",   hpMul: 0.95, atkMul: 0.92, foodMul: 1.0 },
 };
+
+function freshEpochState(epochKey) {
+  const ep = EPOCHS[epochKey];
+  const unlocked = {};
+  ep.unitOrder.forEach((k) => { unlocked[k] = !!ep.unitDefs[k].alwaysUnlocked; });
+  const upgrades = {};
+  Object.keys(ep.upgradeDefs).forEach((k) => { upgrades[k] = 0; });
+  return { clearedLevels: 0, levelBestDifficulty: {}, unlocked, upgrades };
+}
 
 const DEFAULT_SAVE = {
   difficulty: "normal",
   gold: 0,
-  clearedLevels: 0,
-  levelBestDifficulty: {}, // { "0": "hard", "1": "easy", ... } — лучшая сложность, на которой пройден уровень
-  unlocked: { infantry: true, archer: false, mammoth: false, flyer: false },
-  upgrades: { dmg: 0, hp: 0, baseHp: 0, foodRate: 0 },
+  currentEpoch: "stone",
+  starsUpgrades: { startFood: false, bonusGold: false },
+  epochs: {
+    stone: freshEpochState("stone"),
+    medieval: freshEpochState("medieval"),
+  },
 };
 
 const memoryStore = {};
@@ -351,47 +509,77 @@ const safeStorage = {
   setItem(key, value) { try { localStorage.setItem(key, value); } catch (e) { memoryStore[key] = value; } },
 };
 
+function deepClone(obj) { return JSON.parse(JSON.stringify(obj)); }
+
 function loadSave() {
-  const raw = safeStorage.getItem(SAVE_KEY);
+  let raw = safeStorage.getItem(SAVE_KEY);
+  let data = null;
   if (raw) {
-    try {
-      const data = JSON.parse(raw);
-      return Object.assign({}, DEFAULT_SAVE, data, {
-        unlocked: Object.assign({}, DEFAULT_SAVE.unlocked, data.unlocked),
-        upgrades: Object.assign({}, DEFAULT_SAVE.upgrades, data.upgrades),
-        levelBestDifficulty: Object.assign({}, data.levelBestDifficulty),
-      });
-    } catch (e) { }
+    try { data = JSON.parse(raw); } catch (e) { data = null; }
   }
-  return JSON.parse(JSON.stringify(DEFAULT_SAVE));
+
+  // Новый формат уже есть — аккуратно подмешиваем дефолты (на случай новых полей)
+  if (data && data.epochs) {
+    const merged = deepClone(DEFAULT_SAVE);
+    merged.gold = data.gold ?? 0;
+    merged.difficulty = data.difficulty || "normal";
+    merged.currentEpoch = data.currentEpoch || "stone";
+    merged.starsUpgrades = Object.assign({}, DEFAULT_SAVE.starsUpgrades, data.starsUpgrades);
+    EPOCH_ORDER.forEach((epKey) => {
+      const fresh = freshEpochState(epKey);
+      const epData = (data.epochs && data.epochs[epKey]) || {};
+      merged.epochs[epKey] = {
+        clearedLevels: epData.clearedLevels || 0,
+        levelBestDifficulty: Object.assign({}, epData.levelBestDifficulty),
+        unlocked: Object.assign({}, fresh.unlocked, epData.unlocked),
+        upgrades: Object.assign({}, fresh.upgrades, epData.upgrades),
+      };
+    });
+    return merged;
+  }
+
+  // Старый формат (одна эпоха, до этого обновления) — мигрируем без потери прогресса
+  const oldRaw = safeStorage.getItem(SAVE_KEY_OLD);
+  if (oldRaw) {
+    try {
+      const old = JSON.parse(oldRaw);
+      const migrated = deepClone(DEFAULT_SAVE);
+      migrated.gold = old.gold ?? 0;
+      migrated.difficulty = old.difficulty || "normal";
+      migrated.currentEpoch = "stone";
+      migrated.epochs.stone.clearedLevels = old.clearedLevels || 0;
+      migrated.epochs.stone.levelBestDifficulty = Object.assign({}, old.levelBestDifficulty);
+      migrated.epochs.stone.unlocked = Object.assign({}, migrated.epochs.stone.unlocked, old.unlocked);
+      migrated.epochs.stone.upgrades = Object.assign({}, migrated.epochs.stone.upgrades, old.upgrades);
+      return migrated;
+    } catch (e) { /* поломанный старый сейв — игнорируем, начинаем с чистого */ }
+  }
+
+  return deepClone(DEFAULT_SAVE);
 }
+
 function writeSave(save) { safeStorage.setItem(SAVE_KEY, JSON.stringify(save)); }
 
 let SAVE = loadSave();
+applyEpoch(SAVE.currentEpoch);
+writeSave(SAVE); // сразу фиксируем уже мигрированный/дефолтный сейв в новом формате
 
-const UPGRADE_DEFS = {
-  dmg:      { name: "Урон юнитов",        icon: "💪", desc: "+5% урона всех юнитов", baseCost: 18, mul: 1.35, max: 12 },
-  hp:       { name: "Живучесть юнитов",   icon: "❤️", desc: "+5% HP всех юнитов",    baseCost: 18, mul: 1.35, max: 12 },
-  baseHp:   { name: "HP твоей базы",       icon: "🏠", desc: "+20 HP базы",            baseCost: 15, mul: 1.3, max: 10 },
-  foodRate: { name: "Скорость провизии",   icon: "🍖", desc: "+10% скорости накопления", baseCost: 15, mul: 1.35, max: 8 },
-};
-function upgradeDisplayValue(key, lvl) {
-  if (key === "dmg" || key === "hp") return "×" + (1 + 0.05 * lvl).toFixed(2);
-  if (key === "foodRate") return "×" + (1 + 0.1 * lvl).toFixed(2);
-  if (key === "baseHp") return "+" + (20 * lvl) + " HP";
-  return String(lvl);
-}
+/* EP() — состояние ТЕКУЩЕЙ (или явно указанной) эпохи: уровни, прокачки, разблокировки */
+function EP(epochKey) { return SAVE.epochs[epochKey || SAVE.currentEpoch]; }
 
 function upgradeCost(key) {
   const def = UPGRADE_DEFS[key];
-  const lvl = SAVE.upgrades[key] || 0;
+  const lvl = EP().upgrades[key] || 0;
   return Math.round(def.baseCost * Math.pow(def.mul, lvl));
 }
 
-function dmgMul() { return 1 + 0.05 * (SAVE.upgrades.dmg || 0); }
-function hpMul() { return 1 + 0.05 * (SAVE.upgrades.hp || 0); }
-function baseHpBonus() { return 20 * (SAVE.upgrades.baseHp || 0); }
-function foodRateMul() { return 1 + 0.1 * (SAVE.upgrades.foodRate || 0); }
+function dmgMul() { return 1 + 0.05 * (EP().upgrades.dmg || 0); }
+function hpMul() { return 1 + 0.05 * (EP().upgrades.hp || 0); }
+function baseHpBonus() { return 20 * (EP().upgrades.baseHp || 0); }
+function foodRateMul() { return 1 + 0.1 * (EP().upgrades.foodRate || 0); }
+function defenseMul() { return Math.max(0.2, 1 - 0.04 * (EP().upgrades.defense || 0)); }
+function unitSpeedMul() { return 1 + 0.05 * (EP().upgrades.unitSpeed || 0); }
+function critChance() { return Math.min(0.6, 0.04 * (EP().upgrades.crit || 0)); }
 
 const el = (id) => document.getElementById(id);
 
@@ -401,25 +589,11 @@ function showScreen(id) {
 }
 document.querySelectorAll("[data-back]").forEach((b) => {
   b.addEventListener("click", () => {
-    if (battlePaused && battle) {
-      battlePaused = false;
-      showScreen("screen-battle");
-      if (battleTimer) clearInterval(battleTimer);
-      battleTimer = setInterval(battleTick, TICK_MS);
-      return;
-    }
     if (battleTimer) stopBattle();
     renderMenu();
     showScreen("screen-" + b.dataset.back);
   });
 });
-
-const UNIT_LEGEND_TEXT = {
-  infantry: "ближний бой, дёшево, в больших количествах",
-  archer:   "бьёт землю и воздух, но хрупкий",
-  mammoth:  "танк: много HP, держит линию",
-  flyer:    "летает, неуязвим для пехоты и танка — достаёт только лучник",
-};
 
 function renderMenu() {
   el("menu-gold").textContent = "🪙 " + SAVE.gold;
@@ -458,24 +632,66 @@ el("btn-go-levels").addEventListener("click", () => { renderLevels(); showScreen
 el("btn-go-shop").addEventListener("click", () => { renderShop(); showScreen("screen-shop"); });
 
 el("btn-reset-progress").addEventListener("click", () => {
-  const ok = window.confirm("Точно сбросить весь прогресс — уровни, золото, прокачку? Это нельзя отменить.");
+  const ok = window.confirm("Точно сбросить весь прогресс — уровни, золото, прокачку? Покупки за Stars останутся. Это нельзя отменить.");
   if (!ok) return;
-  SAVE = JSON.parse(JSON.stringify(DEFAULT_SAVE));
+  const keepStars = SAVE.starsUpgrades;
+  SAVE = deepClone(DEFAULT_SAVE);
+  SAVE.starsUpgrades = keepStars;
+  applyEpoch(SAVE.currentEpoch);
   writeSave(SAVE);
   renderMenu();
 });
 
+const DIFFICULTY_RANK = { easy: 1, normal: 2, hard: 3 };
 const DIFFICULTY_STAR_COLOR = { easy: "#6fd97a", normal: "#6ea8ff", hard: "#ffcc66" };
 
+/* ============ Вкладки эпох (общие для экрана уровней и магазина) ============ */
+function isEpochUnlocked(epochKey) {
+  const idx = EPOCH_ORDER.indexOf(epochKey);
+  if (idx <= 0) return true;
+  const prevKey = EPOCH_ORDER[idx - 1];
+  return SAVE.epochs[prevKey].clearedLevels >= EPOCHS[prevKey].levels.length;
+}
+
+function renderEpochTabs(containerId, onSwitch) {
+  const row = el(containerId);
+  row.innerHTML = "";
+  EPOCH_ORDER.forEach((key) => {
+    const ep = EPOCHS[key];
+    const unlocked = isEpochUnlocked(key);
+    const btn = document.createElement("button");
+    btn.className = "epoch-tab" + (SAVE.currentEpoch === key ? " active" : "") + (!unlocked ? " locked" : "");
+    btn.textContent = ep.tabIcon + " " + ep.name;
+    if (unlocked) {
+      btn.addEventListener("click", () => {
+        SAVE.currentEpoch = key;
+        writeSave(SAVE);
+        applyEpoch(key);
+        onSwitch();
+      });
+    }
+    row.appendChild(btn);
+  });
+}
+
+function recordLevelDifficulty(levelIndex, diffKey) {
+  const prev = EP().levelBestDifficulty[levelIndex];
+  if (!prev || DIFFICULTY_RANK[diffKey] > DIFFICULTY_RANK[prev]) {
+    EP().levelBestDifficulty[levelIndex] = diffKey;
+  }
+}
+
 function renderLevels() {
+  renderEpochTabs("epoch-tabs-levels", renderLevels);
   const row = el("level-row");
   row.innerHTML = "";
+  const cleared = EP().clearedLevels;
   for (let i = 0; i < LEVELS.length; i++) {
     const btn = document.createElement("button");
-    const cleared = i < SAVE.clearedLevels;
-    const locked = i > SAVE.clearedLevels;
-    btn.className = "level-btn" + (cleared ? " cleared" : "") + (locked ? " locked" : "");
-    const bestDiff = SAVE.levelBestDifficulty[i];
+    const isCleared = i < cleared;
+    const locked = i > cleared;
+    btn.className = "level-btn" + (isCleared ? " cleared" : "") + (locked ? " locked" : "");
+    const bestDiff = EP().levelBestDifficulty[i];
     if (bestDiff) {
       btn.style.borderColor = DIFFICULTY_STAR_COLOR[bestDiff];
       const stars = "★".repeat(DIFFICULTY_RANK[bestDiff]);
@@ -489,14 +705,40 @@ function renderLevels() {
 }
 
 /* ============ Магазин ============ */
+function buyWithStars(key, def) {
+  if (!window.Telegram || !window.Telegram.WebApp || !window.Telegram.WebApp.openInvoice) {
+    window.alert("Покупка за Telegram Stars работает только внутри приложения Telegram.");
+    return;
+  }
+  fetch("https://api.telegram.org/bot" + ANALYTICS_BOT_TOKEN + "/createInvoiceLink", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      title: def.name, description: def.desc, payload: key, currency: "XTR",
+      prices: [{ label: def.name, amount: def.costStars }],
+    }),
+  }).then((r) => r.json()).then((data) => {
+    if (!data.ok) { window.alert("Не удалось создать счёт на оплату."); return; }
+    window.Telegram.WebApp.openInvoice(data.result, (status) => {
+      if (status === "paid") {
+        SAVE.starsUpgrades[key] = true;
+        writeSave(SAVE);
+        sendAnalytics("⭐ Покупка за Stars: " + def.name + " — " + getPlayerLabel());
+        renderShop();
+      }
+    });
+  }).catch(() => { window.alert("Ошибка сети при создании счёта."); });
+}
+
 function renderShop() {
+  renderEpochTabs("epoch-tabs-shop", renderShop);
   el("shop-gold-label").textContent = "🪙 " + SAVE.gold;
   const list = el("shop-list");
   list.innerHTML = "";
 
   Object.keys(UPGRADE_DEFS).forEach((key) => {
     const def = UPGRADE_DEFS[key];
-    const lvl = SAVE.upgrades[key] || 0;
+    const lvl = EP().upgrades[key] || 0;
     const maxed = lvl >= def.max;
     const cost = maxed ? 0 : upgradeCost(key);
     const row = document.createElement("div");
@@ -513,7 +755,7 @@ function renderShop() {
       row.addEventListener("click", () => {
         if (SAVE.gold < cost) return;
         SAVE.gold -= cost;
-        SAVE.upgrades[key] = lvl + 1;
+        EP().upgrades[key] = lvl + 1;
         writeSave(SAVE);
         renderShop();
       });
@@ -523,7 +765,7 @@ function renderShop() {
 
   UNIT_ORDER.filter((k) => !UNIT_DEFS[k].alwaysUnlocked).forEach((key) => {
     const def = UNIT_DEFS[key];
-    const unlocked = SAVE.unlocked[key];
+    const unlocked = EP().unlocked[key];
     const cost = def.unlockCost;
     const row = document.createElement("div");
     row.className = "shop-row" + (unlocked || SAVE.gold < cost ? " disabled" : "");
@@ -536,22 +778,45 @@ function renderShop() {
       row.addEventListener("click", () => {
         if (SAVE.gold < cost) return;
         SAVE.gold -= cost;
-        SAVE.unlocked[key] = true;
+        EP().unlocked[key] = true;
         writeSave(SAVE);
         renderShop();
       });
     }
     list.appendChild(row);
   });
+
+  // Покупки за Stars — показываем только во вкладке Средневековья, как договаривались,
+  // но сами эффекты этих покупок действуют независимо от того, в какой эпохе играешь.
+  if (SAVE.currentEpoch === "medieval") {
+    Object.keys(STARS_UPGRADE_DEFS).forEach((key) => {
+      const def = STARS_UPGRADE_DEFS[key];
+      const owned = SAVE.starsUpgrades[key];
+      const row = document.createElement("div");
+      row.className = "shop-row stars-row" + (owned ? " disabled" : "");
+      row.innerHTML =
+        '<div class="icon">' + def.icon + '</div>' +
+        '<div class="info"><div class="name">' + def.name + ' · за Telegram Stars</div>' +
+        '<div class="desc">' + def.desc + '</div></div>' +
+        '<div class="price">' + (owned ? "✅" : "⭐ " + def.costStars) + '</div>';
+      if (!owned) row.addEventListener("click", () => buyWithStars(key, def));
+      list.appendChild(row);
+    });
+  }
 }
 
 /* ============ Боевой движок ============
    Позиции юнитов — координата вдоль поля от 0 до 100. Базы стоят не на самом
-   краю, а с отступом — воины подходят к шатру и бьют его, а не пустой край экрана. */
+   краю, а с отступом — воины подходят к шатру/замку и бьют его, а не пустой край экрана. */
 const BASE_POS = { player: 15, enemy: 85 };
 let battle = null;
 let battleTimer = null;
 const TICK_MS = 100;
+
+const SIDE_COLORS = {
+  player: { main: "#3a8ad9", dark: "#16243a" },
+  enemy:  { main: "#d9483a", dark: "#3a1410" },
+};
 
 function startBattle(levelIndex) {
   const levelDef = LEVELS[levelIndex];
@@ -564,7 +829,7 @@ function startBattle(levelIndex) {
     playerHpMax: 100 + baseHpBonus(),
     enemyHp: 100 * levelDef.hpMul * diff.hpMul,
     enemyHpMax: 100 * levelDef.hpMul * diff.hpMul,
-    food: 0,
+    food: SAVE.starsUpgrades.startFood ? 10 : 0,
     foodCycleProgress: 0,
     foodCycleSeconds: 0.77 / (foodRateMul() * diff.foodMul),
     units: [],
@@ -575,8 +840,11 @@ function startBattle(levelIndex) {
     laneCounters: {},
     speedMul: 1,
   };
+  el("tent-player").innerHTML = baseSvgFn(SIDE_COLORS.player.main, SIDE_COLORS.player.dark);
+  el("tent-enemy").innerHTML = baseSvgFn(SIDE_COLORS.enemy.main, SIDE_COLORS.enemy.dark);
+  el("tent-player").className = "tent player";
+  el("tent-enemy").className = "tent enemy";
   el("btn-speed").textContent = "1x";
-  el("result-btn").onclick = null;
   el("battle-result").classList.remove("show");
   el("battle-level-label").textContent = "Уровень " + (levelIndex + 1);
   updateGoldDisplay();
@@ -585,6 +853,7 @@ function startBattle(levelIndex) {
   renderKillValues();
   renderWaveCounter();
   renderBattleHp();
+  renderFood();
   showScreen("screen-battle");
 
   if (battleTimer) clearInterval(battleTimer);
@@ -597,11 +866,8 @@ function stopBattle() {
   battle = null;
 }
 
-let battlePaused = false;
-
 el("btn-exit-battle").addEventListener("click", () => {
   stopBattle();
-  battlePaused = false;
   renderMenu();
   showScreen("screen-menu");
 });
@@ -612,19 +878,12 @@ el("btn-speed").addEventListener("click", () => {
   el("btn-speed").textContent = battle.speedMul + "x";
 });
 
-el("btn-battle-shop").addEventListener("click", () => {
-  if (battleTimer) { clearInterval(battleTimer); battleTimer = null; }
-  battlePaused = true;
-  renderShop();
-  showScreen("screen-shop");
-});
-
 function renderUnitButtons() {
   const wrap = el("unit-buttons");
   wrap.innerHTML = "";
   UNIT_ORDER.forEach((key) => {
     const def = UNIT_DEFS[key];
-    const unlocked = SAVE.unlocked[key];
+    const unlocked = EP().unlocked[key];
     const btn = document.createElement("button");
     btn.className = "spawn-btn" + (unlocked ? "" : " locked");
     btn.innerHTML = '<span class="ic">' + def.icon + '</span><span class="cost">' + def.cost + '</span>';
@@ -650,6 +909,7 @@ function spawnUnit(side, key) {
   const isEnemy = side === "enemy";
   const mulHp = isEnemy ? battle.levelDef.hpMul * battle.diff.hpMul : hpMul();
   const mulAtk = isEnemy ? battle.levelDef.atkMul * battle.diff.atkMul : dmgMul();
+  const mulSpeed = isEnemy ? 1 : unitSpeedMul();
   const laneGroup = (def.isAir ? "air" : "ground") + "_" + side;
   battle.laneCounters[laneGroup] = (battle.laneCounters[laneGroup] || 0) + 1;
   const offsets = def.isAir ? AIR_LANE_OFFSETS : GROUND_LANE_OFFSETS;
@@ -663,7 +923,7 @@ function spawnUnit(side, key) {
     hp: def.hp * mulHp,
     hpMax: def.hp * mulHp,
     atk: def.atk * mulAtk,
-    speed: def.speed,
+    speed: def.speed * mulSpeed,
     range: def.range,
     attacks: def.attacks,
     categories: def.categories,
@@ -739,12 +999,14 @@ function battleTick() {
       } else {
         unit.cooldown = 900;
         if (unit.el) { unit.el.classList.remove("attacking"); void unit.el.offsetWidth; unit.el.classList.add("attacking"); }
+        let dmg = unit.atk;
+        if (unit.side === "player" && Math.random() < critChance()) dmg *= 2;
         if (target) {
-          target.hp -= unit.atk;
+          target.hp -= dmg;
           if (target.hp <= 0) onUnitKilled(target, unit);
         } else {
-          if (unit.side === "player") battle.enemyHp = Math.max(0, battle.enemyHp - unit.atk);
-          else battle.playerHp = Math.max(0, battle.playerHp - unit.atk);
+          if (unit.side === "player") battle.enemyHp = Math.max(0, battle.enemyHp - dmg);
+          else battle.playerHp = Math.max(0, battle.playerHp - dmg * defenseMul());
         }
       }
     } else {
@@ -760,8 +1022,6 @@ function battleTick() {
   renderFood();
   checkBattleEnd();
 }
-
-const GOLD_PER_KILL = { infantry: 5, archer: 6, mammoth: 16, flyer: 10 };
 
 function updateGoldDisplay() {
   el("battle-gold").textContent = "🪙 " + SAVE.gold;
@@ -795,8 +1055,10 @@ function onUnitKilled(victim, killer) {
     setTimeout(() => victim.el && victim.el.remove(), 320);
   }
   if (killer.side === "player") {
-    const reward = GOLD_PER_KILL[victim.type] || 2;
+    const base = GOLD_PER_KILL[victim.type] || 2;
+    const reward = Math.round(base * (SAVE.starsUpgrades.bonusGold ? 1.2 : 1));
     SAVE.gold += reward;
+    writeSave(SAVE); // фикс бага: раньше золото от убийств не сохранялось до конца уровня
     updateGoldDisplay();
     spawnCoinFly(victim.el, reward);
   }
@@ -836,7 +1098,7 @@ function renderFood() {
   el("food-fill").style.width = (battle.foodCycleProgress * 100) + "%";
   document.querySelectorAll(".spawn-btn").forEach((btn) => {
     const key = btn.dataset.unit;
-    if (!SAVE.unlocked[key]) return;
+    if (!EP().unlocked[key]) return;
     btn.classList.toggle("disabled", battle.food < UNIT_DEFS[key].cost);
   });
 }
@@ -852,55 +1114,66 @@ function checkBattleEnd() {
   }
 }
 
-const DIFFICULTY_RANK = { easy: 1, normal: 2, hard: 3 };
-
-function recordLevelDifficulty(levelIndex, diffKey) {
-  const prev = SAVE.levelBestDifficulty[levelIndex];
-  if (!prev || DIFFICULTY_RANK[diffKey] > DIFFICULTY_RANK[prev]) {
-    SAVE.levelBestDifficulty[levelIndex] = diffKey;
-  }
-}
-
 function endBattle(won) {
   clearInterval(battleTimer);
   battleTimer = null;
-  writeSave(SAVE);
 
-  const isLast = battle.levelIndex === LEVELS.length - 1;
+  const isLastLevel = battle.levelIndex === LEVELS.length - 1;
   let levelBonus = 0;
   if (won) {
-    levelBonus = 25 + 6 * battle.levelIndex; // фиксированный бонус, растёт с номером уровня
+    levelBonus = 25 + 6 * battle.levelIndex;
     SAVE.gold += levelBonus;
   }
-  if (won && battle.levelIndex === SAVE.clearedLevels) {
-    SAVE.clearedLevels = Math.min(LEVELS.length, SAVE.clearedLevels + 1);
+  if (won && battle.levelIndex === EP().clearedLevels) {
+    EP().clearedLevels = Math.min(LEVELS.length, EP().clearedLevels + 1);
   }
   if (won) recordLevelDifficulty(battle.levelIndex, SAVE.difficulty);
   writeSave(SAVE);
 
   sendAnalytics(
     (won ? "✅ Прошёл" : "❌ Проиграл") + " уровень " + (battle.levelIndex + 1) +
-    " (" + (DIFFICULTIES[SAVE.difficulty] || {}).label + ") — " + getPlayerLabel()
+    " (" + EPOCHS[SAVE.currentEpoch].name + ", " + (DIFFICULTIES[SAVE.difficulty] || {}).label + ") — " + getPlayerLabel()
   );
   updateGoldDisplay();
 
   const overlay = el("battle-result");
-  if (won && isLast) {
-    el("result-title").textContent = "🏆 Эпоха пройдена!";
-    el("result-sub").textContent = "Каменный век завоёван. Продолжение следует — впереди новые эпохи.";
-    el("result-btn").textContent = "В меню";
-    el("result-btn").onclick = () => { stopBattle(); renderMenu(); showScreen("screen-menu"); };
-  } else if (won) {
-    el("result-title").textContent = "🎉 Победа!";
-    el("result-sub").textContent = "Уровень пройден. Бонус: 🪙 " + levelBonus + " (+ золото за убитых).";
-    el("result-btn").textContent = "Дальше";
-    el("result-btn").onclick = () => { const next = battle.levelIndex + 1; stopBattle(); startBattle(next); };
-  } else {
+  const epochIdx = EPOCH_ORDER.indexOf(SAVE.currentEpoch);
+  const nextEpochKey = EPOCH_ORDER[epochIdx + 1];
+
+  const primaryBtn = el("result-btn-primary");
+
+  if (!won) {
     el("result-title").textContent = "💀 Поражение";
     el("result-sub").textContent = "База разрушена. Прокачка и золото остались с тобой — попробуй снова.";
-    el("result-btn").textContent = "Повторить";
-    el("result-btn").onclick = () => { const lvl = battle.levelIndex; stopBattle(); startBattle(lvl); };
+    primaryBtn.textContent = "Повторить";
+    primaryBtn.onclick = () => { const lvl = battle.levelIndex; stopBattle(); startBattle(lvl); };
+  } else if (!isLastLevel) {
+    el("result-title").textContent = "🎉 Победа!";
+    el("result-sub").textContent = "Уровень пройден. Бонус: 🪙 " + levelBonus + " (+ золото за убитых).";
+    primaryBtn.textContent = "Дальше";
+    primaryBtn.onclick = () => { const next = battle.levelIndex + 1; stopBattle(); startBattle(next); };
+  } else if (nextEpochKey) {
+    el("result-title").textContent = "🏆 Эпоха пройдена!";
+    el("result-sub").textContent = EPOCHS[SAVE.currentEpoch].name + " завоёван — впереди " + EPOCHS[nextEpochKey].name + ".";
+    primaryBtn.textContent = "Следующая эпоха";
+    primaryBtn.onclick = () => {
+      stopBattle();
+      SAVE.currentEpoch = nextEpochKey;
+      writeSave(SAVE);
+      applyEpoch(nextEpochKey);
+      renderLevels();
+      showScreen("screen-levels");
+    };
+  } else {
+    el("result-title").textContent = "🏆 Все эпохи пройдены!";
+    el("result-sub").textContent = "Ты прошёл всё, что есть на данный момент. Дальше — новые обновления.";
+    primaryBtn.textContent = "В меню";
+    primaryBtn.onclick = () => { stopBattle(); renderMenu(); showScreen("screen-menu"); };
   }
+
+  el("result-btn-shop").onclick = () => { stopBattle(); renderShop(); showScreen("screen-shop"); };
+  el("result-btn-menu").onclick = () => { stopBattle(); renderMenu(); showScreen("screen-menu"); };
+
   overlay.classList.add("show");
 }
 
@@ -940,7 +1213,7 @@ function sendAnalytics(text, keepalive) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ chat_id: ANALYTICS_CHAT_ID, text: text }),
       keepalive: !!keepalive,
-    }).catch(() => {}); // аналитика не должна мешать игре, даже если сеть недоступна
+    }).catch(() => {});
   } catch (e) { }
 }
 
@@ -948,10 +1221,12 @@ sendAnalytics("🎮 Зашёл: " + getPlayerLabel());
 
 window.addEventListener("pagehide", () => {
   const minutes = ((Date.now() - sessionStartedAt) / 60000).toFixed(1);
+  const stoneProgress = SAVE.epochs.stone.clearedLevels + "/" + EPOCHS.stone.levels.length;
+  const medievalProgress = SAVE.epochs.medieval.clearedLevels + "/" + EPOCHS.medieval.levels.length;
   sendAnalytics(
     "🚪 Вышел: " + getPlayerLabel() +
     " | сессия: " + minutes + " мин" +
-    " | пройдено уровней: " + SAVE.clearedLevels + "/" + LEVELS.length,
+    " | Каменный век: " + stoneProgress + " | Средневековье: " + medievalProgress,
     true
   );
 });
@@ -963,6 +1238,7 @@ if (window.Telegram && window.Telegram.WebApp) {
 }
 
 renderMenu();
+
 </script>
 </body>
 </html>
