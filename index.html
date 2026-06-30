@@ -5,7 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Каменный век — Племенные войны</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<!-- AdsGram SDK — временно отключено
 <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
+-->
 <style>
   :root {
     --bg: #1a2614; --panel: #24331c; --accent: #ffcc66; --text: #f0f0e8;
@@ -272,9 +274,9 @@
 </div>
 
 <script>
-/* VERSION: v2 (stats-era) — расширенная аналитика боя (юниты, волна смерти,
-   HP базы, апгрейды), сводка сессии (реклама/Stars, кол-во боёв) */
-const GAME_VERSION = "v2 (stats-era)";
+/* VERSION: v3 (stats-era) — реклама временно отключена (закомментирована),
+   rewarded-апгрейды unitSpeed/crit переключены на Stars (1⭐ и 2⭐ за уровень) */
+const GAME_VERSION = "v3 (stats-era)";
 
 /* ============ Конфигурация: Каменный век ============ */
 const STONE_UNIT_DEFS = {
@@ -406,8 +408,9 @@ const AD_UPGRADE_DEFS = {
   unitSpeed: { name: "Скорость юнитов", icon: "🥾", desc: "+10% скорости передвижения юнитов", max: 5 },
   crit:      { name: "Шанс крита",      icon: "🎯", desc: "+5% шанс удвоенного урона",          max: 5 },
 };
-const ADSGRAM_BLOCK_ID_REWARD = "36650";
-const ADSGRAM_BLOCK_ID_INTRO = "int-36651";
+// AdsGram Block IDs — временно отключено
+// const ADSGRAM_BLOCK_ID_REWARD = "36650";
+// const ADSGRAM_BLOCK_ID_INTRO = "int-36651";
 
 /* Покупки за Telegram Stars — доступны только во вкладке Средневековья,
    но эффект применяется глобально (не привязан к эпохе), и НЕ сбрасывается
@@ -869,15 +872,18 @@ function renderShop() {
     list.appendChild(row);
   });
 
-  // Абгрейды только за рекламу — никогда за золото
+  // Абгрейды за рекламу — временно переключены на Stars (1⭐ и 2⭐ за уровень)
+  // Когда реклама вернётся: раскомментировать watchAdForUpgrade и убрать buyWithStars ниже
   if (EPOCHS[SAVE.currentEpoch].adUpgradeDefs) {
+    const AD_UPGRADE_STARS_COST = { unitSpeed: 1, crit: 2 };
     list.appendChild(document.createElement("div")).className = "shop-section-gap";
     Object.keys(EPOCHS[SAVE.currentEpoch].adUpgradeDefs).forEach((key) => {
       const def = EPOCHS[SAVE.currentEpoch].adUpgradeDefs[key];
       const lvl = EP().upgrades[key] || 0;
       const maxed = lvl >= def.max;
+      const starsCost = AD_UPGRADE_STARS_COST[key] || 1;
       const row = document.createElement("div");
-      row.className = "shop-row" + (maxed ? " disabled" : "");
+      row.className = "shop-row stars-row" + (maxed ? " disabled" : "");
       row.innerHTML =
         '<div class="icon">' + def.icon + '</div>' +
         '<div class="info"><div class="name">' + def.name + ' · ур. ' + lvl + '</div>' +
@@ -885,8 +891,39 @@ function renderShop() {
         '<span style="color:var(--text-dim);">' + upgradeDisplayValue(key, lvl) + '</span>' +
         (maxed ? '' : ' <span style="color:var(--accent);">→ ' + upgradeDisplayValue(key, lvl + 1) + '</span>') +
         '</div></div>' +
-        '<div class="price">' + (maxed ? "МАКС" : "📺") + '</div>';
-      if (!maxed) row.addEventListener("click", () => watchAdForUpgrade(key, row));
+        '<div class="price">' + (maxed ? "МАКС" : "⭐ " + starsCost) + '</div>';
+      if (!maxed) {
+        // Используем buyWithStars с inline-определением (adUpgrade не в STARS_UPGRADE_DEFS,
+        // поэтому вызываем логику напрямую через временный def-объект)
+        row.addEventListener("click", () => {
+          if (!window.Telegram || !window.Telegram.WebApp || !window.Telegram.WebApp.openInvoice) {
+            window.alert("Покупка за Telegram Stars работает только внутри приложения Telegram.");
+            return;
+          }
+          const currentLvl = EP().upgrades[key] || 0;
+          if (currentLvl >= def.max) return;
+          fetch("https://api.telegram.org/bot" + ANALYTICS_BOT_TOKEN + "/createInvoiceLink", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              title: def.name, description: def.desc,
+              payload: "ad_upgrade:" + key + ":" + (currentLvl + 1),
+              currency: "XTR",
+              prices: [{ label: def.name + " ур. " + (currentLvl + 1), amount: starsCost }],
+            }),
+          }).then((r) => r.json()).then((data) => {
+            if (!data.ok) { window.alert("Не удалось создать счёт на оплату."); return; }
+            window.Telegram.WebApp.openInvoice(data.result, (status) => {
+              if (status === "paid") {
+                EP().upgrades[key] = currentLvl + 1;
+                writeSave(SAVE);
+                sessionStarsPurchases.push(def.name + " ур. " + (currentLvl + 1));
+                renderShop();
+              }
+            });
+          }).catch(() => { window.alert("Ошибка сети при создании счёта."); });
+        });
+      }
       list.appendChild(row);
     });
   }
@@ -1276,14 +1313,10 @@ function endBattle(won) {
     EP().clearedLevels = Math.min(LEVELS.length, EP().clearedLevels + 1);
   }
   if (won) recordLevelDifficulty(battle.levelIndex, SAVE.difficulty);
-  SAVE.battlesSinceAd = (SAVE.battlesSinceAd || 0) + 1;
+  // AdsGram интерстишл — временно отключено
+  // SAVE.battlesSinceAd = (SAVE.battlesSinceAd || 0) + 1;
+  // if (SAVE.battlesSinceAd >= 5) { SAVE.battlesSinceAd = 0; sessionInterstitials++; }
   sessionBattles++;
-  let showPeriodicAd = false;
-  if (SAVE.battlesSinceAd >= 5) {
-    SAVE.battlesSinceAd = 0;
-    showPeriodicAd = true;
-    sessionInterstitials++;
-  }
   writeSave(SAVE);
 
   sendAnalytics(
@@ -1337,10 +1370,11 @@ function endBattle(won) {
 
   overlay.classList.add("show");
 
-  if (showPeriodicAd && window.Adsgram) {
-    try { window.Adsgram.init({ blockId: ADSGRAM_BLOCK_ID_INTRO }).show().catch(() => {}); }
-    catch (e) { /* реклама не загрузилась — не блокируем игрока */ }
-  }
+  // AdsGram интерстишл — временно отключено
+  // if (showPeriodicAd && window.Adsgram) {
+  //   try { window.Adsgram.init({ blockId: ADSGRAM_BLOCK_ID_INTRO }).show().catch(() => {}); }
+  //   catch (e) { /* реклама не загрузилась — не блокируем игрока */ }
+  // }
 }
 
 /* ============ Аналитика (без сервера, через Telegram Bot API) ============
