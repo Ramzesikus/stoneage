@@ -167,9 +167,9 @@
   }
   .result-btn-secondary { background: var(--panel); color: var(--text); font-weight: 500; font-size: 14px; }
 
-  .unit.side-enemy > span:last-child { display: inline-block; transform: scaleX(-1); }
+  .legend-item .desc b { color: var(--text); font-size: 12px; }
 
-  .epoch-tabs { display: flex; gap: 8px; width: 100%; max-width: 320px; margin-bottom: 4px; }
+  .epoch-tabs { display: flex; gap: 8px; width: 100%; max-width: 320px; margin: 0 auto 4px; }
   .epoch-tab {
     flex: 1; padding: 8px 4px; border-radius: 10px; border: 2px solid transparent;
     background: var(--panel); color: var(--text-dim); font-size: 12px; cursor: pointer;
@@ -178,19 +178,26 @@
   .epoch-tab.locked { opacity: 0.35; cursor: default; }
 
   .stars-row .price { color: #ffd966; }
+  .shop-section-gap { height: 18px; border-top: 1px solid #ffffff14; margin-top: 6px; }
+  .shop-sticky-top {
+    position: sticky; top: 0; z-index: 30; background: var(--bg);
+    padding-bottom: 8px; display: flex; flex-direction: column; gap: 8px; align-items: center;
+  }
+  .shop-row.loading .price { font-size: 18px; }
 </style>
 </head>
 <body>
 <div id="app">
 
   <div class="screen active" id="screen-menu">
-    <h1>🏔️ Каменный век</h1>
+    <h1 id="menu-title">🏔️ Каменный век</h1>
     <p>Племенные войны — отбей атаки и сломай вражескую базу</p>
+    <div class="epoch-tabs" id="epoch-tabs-menu"></div>
     <div id="difficulty-row" style="display:flex; gap:8px; width:100%; max-width:300px;"></div>
-    <div id="unit-legend" style="display:flex; flex-direction:column; gap:6px; width:100%; max-width:320px; margin: 4px 0 6px;"></div>
     <button class="menu-btn" id="btn-go-levels">▶️ Играть <span class="gold" id="menu-gold"></span></button>
     <button class="menu-btn" id="btn-go-shop">🛒 Магазин</button>
     <div class="back-link" id="btn-reset-progress" style="margin-top:8px;">↺ Начать заново (сбросить прогресс)</div>
+    <div id="unit-legend" style="display:flex; flex-direction:column; gap:6px; width:100%; max-width:320px; margin-top: 14px;"></div>
   </div>
 
   <div class="screen" id="screen-levels">
@@ -201,11 +208,13 @@
   </div>
 
   <div class="screen" id="screen-shop">
-    <h2>Магазин</h2>
-    <div class="epoch-tabs" id="epoch-tabs-shop"></div>
-    <div class="shop-gold" id="shop-gold-label"></div>
+    <div class="shop-sticky-top">
+      <h2 style="margin:6px 0 0;">Магазин</h2>
+      <div class="epoch-tabs" id="epoch-tabs-shop" style="margin-bottom:0;"></div>
+      <div class="shop-gold" id="shop-gold-label" style="margin-bottom:0;"></div>
+      <div class="back-link" data-back="menu">‹ В меню</div>
+    </div>
     <div id="shop-list"></div>
-    <div class="back-link" data-back="menu" style="text-align:center;">‹ В меню</div>
   </div>
 
   <div class="screen" id="screen-battle">
@@ -270,7 +279,7 @@ const STONE_UNIT_DEFS = {
   archer:   { name: "Лучник", icon: "🏹", cost: 18, hp: 16, atk: 4, speed: 0.45, range: 16,
               categories: ["ground", "ranged"], attacks: ["ground", "air"], isAir: false, unlockCost: 25 },
   mammoth:  { name: "Мамонт с наездником", icon: "🐘", cost: 45, hp: 110, atk: 11, speed: 0.28, range: 5,
-              categories: ["ground"], attacks: ["ground"], isAir: false, unlockCost: 100 },
+              categories: ["ground"], attacks: ["ground"], isAir: false, unlockCost: 100, facesLeft: true },
   flyer:    { name: "Птеродактиль с наездником", icon: "🦇", cost: 32, hp: 35, atk: 8, speed: 0.7, range: 4,
               categories: ["air"], attacks: ["air", "ranged"], isAir: true, unlockCost: 150 },
 };
@@ -288,23 +297,24 @@ const STONE_LEVELS = [
     {t:1, type:"infantry"}, {t:7, type:"archer"}, {t:14, type:"infantry"}, {t:20, type:"mammoth"},
     {t:28, type:"infantry"}, {t:34, type:"archer"},
   ]},
-  { hpMul: 1.08, atkMul: 1.05, waves: [
+  { hpMul: 1.1, atkMul: 1.06, waves: [
     {t:1, type:"infantry"}, {t:6, type:"infantry"}, {t:12, type:"archer"}, {t:18, type:"mammoth"},
-    {t:26, type:"infantry"}, {t:32, type:"archer"}, {t:38, type:"infantry"},
+    {t:26, type:"infantry"}, {t:32, type:"archer"}, {t:38, type:"mammoth"},
   ]},
-  { hpMul: 1.12, atkMul: 1.08, waves: [
+  { hpMul: 1.16, atkMul: 1.1, waves: [
     {t:1, type:"infantry"}, {t:6, type:"archer"}, {t:12, type:"flyer"}, {t:18, type:"mammoth"},
     {t:25, type:"infantry"}, {t:30, type:"infantry"}, {t:36, type:"archer"}, {t:42, type:"mammoth"},
   ]},
-  { hpMul: 1.18, atkMul: 1.12, waves: [
+  { hpMul: 1.24, atkMul: 1.15, waves: [
     {t:1, type:"infantry"}, {t:5, type:"infantry"}, {t:10, type:"archer"}, {t:15, type:"flyer"},
-    {t:21, type:"mammoth"}, {t:27, type:"infantry"}, {t:32, type:"archer"}, {t:37, type:"flyer"},
-    {t:43, type:"mammoth"},
+    {t:21, type:"mammoth"}, {t:27, type:"infantry"}, {t:27, type:"infantry"}, {t:32, type:"archer"},
+    {t:37, type:"flyer"}, {t:43, type:"mammoth"},
   ]},
-  { hpMul: 1.35, atkMul: 1.22, waves: [
+  { hpMul: 1.45, atkMul: 1.28, waves: [
     {t:1, type:"infantry"}, {t:4, type:"infantry"}, {t:8, type:"archer"}, {t:12, type:"flyer"},
-    {t:17, type:"mammoth"}, {t:22, type:"infantry"}, {t:26, type:"archer"}, {t:30, type:"flyer"},
-    {t:35, type:"mammoth"}, {t:40, type:"archer"},
+    {t:17, type:"mammoth"}, {t:17, type:"mammoth"}, {t:22, type:"infantry"}, {t:22, type:"infantry"},
+    {t:26, type:"archer"}, {t:30, type:"flyer"}, {t:35, type:"mammoth"}, {t:40, type:"archer"},
+    {t:44, type:"mammoth"},
   ]},
 ];
 
@@ -324,9 +334,9 @@ const MEDIEVAL_UNIT_DEFS = {
   crossbow:  { name: "Арбалетчик", icon: "🏹", cost: 20, hp: 18, atk: 5, speed: 0.45, range: 16,
                categories: ["ground", "ranged"], attacks: ["ground", "air"], isAir: false, unlockCost: 30 },
   knight:    { name: "Рыцарь на коне", icon: "🐎", cost: 50, hp: 130, atk: 13, speed: 0.3, range: 5,
-               categories: ["ground"], attacks: ["ground"], isAir: false, unlockCost: 110 },
+               categories: ["ground"], attacks: ["ground"], isAir: false, unlockCost: 110, facesLeft: true },
   dragon:    { name: "Дракон с наездником", icon: "🐉", cost: 36, hp: 40, atk: 9, speed: 0.7, range: 4,
-               categories: ["air"], attacks: ["air", "ranged"], isAir: true, unlockCost: 160 },
+               categories: ["air"], attacks: ["air", "ranged"], isAir: true, unlockCost: 160, facesLeft: true },
 };
 const MEDIEVAL_UNIT_ORDER = ["swordsman", "crossbow", "knight", "dragon"];
 
@@ -342,23 +352,24 @@ const MEDIEVAL_LEVELS = [
     {t:1, type:"swordsman"}, {t:7, type:"crossbow"}, {t:14, type:"swordsman"}, {t:20, type:"knight"},
     {t:28, type:"swordsman"}, {t:34, type:"crossbow"},
   ]},
-  { hpMul: 1.08, atkMul: 1.05, waves: [
+  { hpMul: 1.1, atkMul: 1.06, waves: [
     {t:1, type:"swordsman"}, {t:6, type:"swordsman"}, {t:12, type:"crossbow"}, {t:18, type:"knight"},
-    {t:26, type:"swordsman"}, {t:32, type:"crossbow"}, {t:38, type:"swordsman"},
+    {t:26, type:"swordsman"}, {t:32, type:"crossbow"}, {t:38, type:"knight"},
   ]},
-  { hpMul: 1.12, atkMul: 1.08, waves: [
+  { hpMul: 1.16, atkMul: 1.1, waves: [
     {t:1, type:"swordsman"}, {t:6, type:"crossbow"}, {t:12, type:"dragon"}, {t:18, type:"knight"},
     {t:25, type:"swordsman"}, {t:30, type:"swordsman"}, {t:36, type:"crossbow"}, {t:42, type:"knight"},
   ]},
-  { hpMul: 1.18, atkMul: 1.12, waves: [
+  { hpMul: 1.24, atkMul: 1.15, waves: [
     {t:1, type:"swordsman"}, {t:5, type:"swordsman"}, {t:10, type:"crossbow"}, {t:15, type:"dragon"},
-    {t:21, type:"knight"}, {t:27, type:"swordsman"}, {t:32, type:"crossbow"}, {t:37, type:"dragon"},
-    {t:43, type:"knight"},
+    {t:21, type:"knight"}, {t:27, type:"swordsman"}, {t:27, type:"swordsman"}, {t:32, type:"crossbow"},
+    {t:37, type:"dragon"}, {t:43, type:"knight"},
   ]},
-  { hpMul: 1.4, atkMul: 1.25, waves: [
+  { hpMul: 1.5, atkMul: 1.3, waves: [
     {t:1, type:"swordsman"}, {t:4, type:"swordsman"}, {t:8, type:"crossbow"}, {t:12, type:"dragon"},
-    {t:17, type:"knight"}, {t:22, type:"swordsman"}, {t:26, type:"crossbow"}, {t:30, type:"dragon"},
-    {t:35, type:"knight"}, {t:40, type:"crossbow"},
+    {t:17, type:"knight"}, {t:17, type:"knight"}, {t:22, type:"swordsman"}, {t:22, type:"swordsman"},
+    {t:26, type:"crossbow"}, {t:30, type:"dragon"}, {t:35, type:"knight"}, {t:40, type:"crossbow"},
+    {t:44, type:"knight"},
   ]},
 ];
 
@@ -373,10 +384,10 @@ const MEDIEVAL_LEGEND = {
 
 /* ============ Прокачки: общие 4 + новые медиевальные ============ */
 const BASE_UPGRADE_DEFS = {
-  dmg:      { name: "Урон юнитов",        icon: "💪", desc: "+5% урона всех юнитов", baseCost: 18, mul: 1.35, max: 12 },
-  hp:       { name: "Живучесть юнитов",   icon: "❤️", desc: "+5% HP всех юнитов",    baseCost: 18, mul: 1.35, max: 12 },
-  baseHp:   { name: "HP твоей базы",       icon: "🏠", desc: "+20 HP базы",            baseCost: 15, mul: 1.3, max: 10 },
-  foodRate: { name: "Скорость провизии",   icon: "🍖", desc: "+10% скорости накопления", baseCost: 15, mul: 1.35, max: 8 },
+  dmg:      { name: "Урон юнитов",        icon: "💪", desc: "+5% урона всех юнитов", baseCost: 18, mul: 1.35, max: 18 },
+  hp:       { name: "Живучесть юнитов",   icon: "❤️", desc: "+5% HP всех юнитов",    baseCost: 18, mul: 1.35, max: 18 },
+  baseHp:   { name: "HP твоей базы",       icon: "🏠", desc: "+20 HP базы",            baseCost: 15, mul: 1.3, max: 14 },
+  foodRate: { name: "Скорость провизии",   icon: "🍖", desc: "+10% скорости накопления", baseCost: 15, mul: 1.35, max: 12 },
 };
 
 const MEDIEVAL_EXTRA_UPGRADE_DEFS = {
@@ -388,27 +399,28 @@ const MEDIEVAL_UPGRADE_DEFS = Object.assign({}, BASE_UPGRADE_DEFS, MEDIEVAL_EXTR
 /* Абгрейды только за рекламу (AdsGram) — никогда за золото. Каждый успешный
    просмотр даёт ровно +1 уровень, до max. Доступны только в Средневековье. */
 const AD_UPGRADE_DEFS = {
-  unitSpeed: { name: "Скорость юнитов", icon: "🥾", desc: "+5% скорости передвижения юнитов за просмотр рекламы", max: 8 },
-  crit:      { name: "Шанс крита",      icon: "🎯", desc: "+4% шанс удвоенного урона за просмотр рекламы",        max: 8 },
+  unitSpeed: { name: "Скорость юнитов", icon: "🥾", desc: "+10% скорости передвижения юнитов", max: 5 },
+  crit:      { name: "Шанс крита",      icon: "🎯", desc: "+5% шанс удвоенного урона",          max: 5 },
 };
 const ADSGRAM_BLOCK_ID_REWARD = "36650";
 const ADSGRAM_BLOCK_ID_INTRO = "int-36651";
 
 /* Покупки за Telegram Stars — доступны только во вкладке Средневековья,
    но эффект применяется глобально (не привязан к эпохе), и НЕ сбрасывается
-   кнопкой "Начать заново". */
+   кнопкой "Начать заново". Каждая — многоуровневая, цена растёт линейно. */
 const STARS_UPGRADE_DEFS = {
-  startFood: { name: "Стартовая провизия", icon: "🍗", desc: "+10 провизии в начале каждого боя, навсегда", costStars: 10 },
-  bonusGold: { name: "Доп. золото",        icon: "💰", desc: "+20% золота за каждое убийство, навсегда",    costStars: 20 },
+  startFood: { name: "Стартовая провизия", icon: "🍗", desc: "+15 провизии в начале каждого боя за уровень", baseCostStars: 10, stepCostStars: 10, perLevel: 15, max: 5 },
+  bonusGold: { name: "Доп. золото",        icon: "💰", desc: "+15% золота за каждое убийство за уровень",    baseCostStars: 10, stepCostStars: 10, perLevel: 15, max: 5 },
 };
+function starsUpgradeCost(def, lvl) { return def.baseCostStars + def.stepCostStars * lvl; }
 
 function upgradeDisplayValue(key, lvl) {
   if (key === "dmg" || key === "hp") return "×" + (1 + 0.05 * lvl).toFixed(2);
   if (key === "foodRate") return "×" + (1 + 0.1 * lvl).toFixed(2);
   if (key === "baseHp") return "+" + (20 * lvl) + " HP";
   if (key === "defense") return "-" + (4 * lvl) + "%";
-  if (key === "unitSpeed") return "×" + (1 + 0.05 * lvl).toFixed(2);
-  if (key === "crit") return (4 * lvl) + "%";
+  if (key === "unitSpeed") return "×" + (1 + 0.1 * lvl).toFixed(2);
+  if (key === "crit") return (5 * lvl) + "%";
   return String(lvl);
 }
 
@@ -488,7 +500,7 @@ const SAVE_KEY_OLD = "stoneage_save_v1"; // формат до введения �
 const DIFFICULTIES = {
   easy:   { label: "Легко",    hpMul: 0.42, atkMul: 0.45, foodMul: 1.5 },
   normal: { label: "Нормально", hpMul: 0.56, atkMul: 0.58, foodMul: 1.25 },
-  hard:   { label: "Сложно",   hpMul: 0.95, atkMul: 0.92, foodMul: 1.0 },
+  hard:   { label: "Сложно",   hpMul: 0.8,  atkMul: 0.78, foodMul: 1.0 },
 };
 
 function freshEpochState(epochKey) {
@@ -505,7 +517,8 @@ const DEFAULT_SAVE = {
   difficulty: "normal",
   gold: 0,
   currentEpoch: "stone",
-  starsUpgrades: { startFood: false, bonusGold: false },
+  battlesSinceAd: 0,
+  starsUpgrades: { startFood: 0, bonusGold: 0 },
   epochs: {
     stone: freshEpochState("stone"),
     medieval: freshEpochState("medieval"),
@@ -533,7 +546,13 @@ function loadSave() {
     merged.gold = data.gold ?? 0;
     merged.difficulty = data.difficulty || "normal";
     merged.currentEpoch = data.currentEpoch || "stone";
+    merged.battlesSinceAd = data.battlesSinceAd || 0;
     merged.starsUpgrades = Object.assign({}, DEFAULT_SAVE.starsUpgrades, data.starsUpgrades);
+    // обратная совместимость: раньше это были true/false, теперь уровень 0-5
+    ["startFood", "bonusGold"].forEach((k) => {
+      if (merged.starsUpgrades[k] === true) merged.starsUpgrades[k] = 1;
+      if (merged.starsUpgrades[k] === false) merged.starsUpgrades[k] = 0;
+    });
     EPOCH_ORDER.forEach((epKey) => {
       const fresh = freshEpochState(epKey);
       const epData = (data.epochs && data.epochs[epKey]) || {};
@@ -586,8 +605,8 @@ function hpMul() { return 1 + 0.05 * (EP().upgrades.hp || 0); }
 function baseHpBonus() { return 20 * (EP().upgrades.baseHp || 0); }
 function foodRateMul() { return 1 + 0.1 * (EP().upgrades.foodRate || 0); }
 function defenseMul() { return Math.max(0.2, 1 - 0.04 * (EP().upgrades.defense || 0)); }
-function unitSpeedMul() { return 1 + 0.05 * (EP().upgrades.unitSpeed || 0); }
-function critChance() { return Math.min(0.6, 0.04 * (EP().upgrades.crit || 0)); }
+function unitSpeedMul() { return 1 + 0.1 * (EP().upgrades.unitSpeed || 0); }
+function critChance() { return Math.min(0.6, 0.05 * (EP().upgrades.crit || 0)); }
 
 const el = (id) => document.getElementById(id);
 
@@ -605,6 +624,8 @@ document.querySelectorAll("[data-back]").forEach((b) => {
 
 function renderMenu() {
   el("menu-gold").textContent = "🪙 " + SAVE.gold;
+  el("menu-title").textContent = EPOCHS[SAVE.currentEpoch].tabIcon + " " + EPOCHS[SAVE.currentEpoch].name;
+  renderEpochTabs("epoch-tabs-menu", renderMenu);
   renderDifficultyRow();
   renderUnitLegend();
 }
@@ -632,7 +653,7 @@ function renderUnitLegend() {
     const def = UNIT_DEFS[key];
     const item = document.createElement("div");
     item.className = "legend-item";
-    item.innerHTML = '<div class="ic">' + def.icon + '</div><div class="desc">' + UNIT_LEGEND_TEXT[key] + '</div>';
+    item.innerHTML = '<div class="ic">' + def.icon + '</div><div class="desc"><b>' + def.name + '</b><br>' + UNIT_LEGEND_TEXT[key] + '</div>';
     row.appendChild(item);
   });
 }
@@ -664,12 +685,6 @@ function isEpochUnlocked(epochKey) {
 function switchEpoch(key) {
   SAVE.currentEpoch = key;
   applyEpoch(key);
-  if (key === "medieval" && !SAVE.medievalIntroAdShown) {
-    SAVE.medievalIntroAdShown = true;
-    try {
-      window.Adsgram.init({ blockId: ADSGRAM_BLOCK_ID_INTRO }).show().catch(() => {});
-    } catch (e) { /* реклама не загрузилась — не блокируем игрока */ }
-  }
   writeSave(SAVE);
 }
 
@@ -724,6 +739,9 @@ function renderLevels() {
 
 /* ============ Магазин ============ */
 function buyWithStars(key, def) {
+  const lvl = SAVE.starsUpgrades[key] || 0;
+  if (lvl >= def.max) return;
+  const cost = starsUpgradeCost(def, lvl);
   if (!window.Telegram || !window.Telegram.WebApp || !window.Telegram.WebApp.openInvoice) {
     window.alert("Покупка за Telegram Stars работает только внутри приложения Telegram.");
     return;
@@ -732,34 +750,61 @@ function buyWithStars(key, def) {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      title: def.name, description: def.desc, payload: key, currency: "XTR",
-      prices: [{ label: def.name, amount: def.costStars }],
+      title: def.name, description: def.desc, payload: key + ":" + (lvl + 1), currency: "XTR",
+      prices: [{ label: def.name + " ур. " + (lvl + 1), amount: cost }],
     }),
   }).then((r) => r.json()).then((data) => {
     if (!data.ok) { window.alert("Не удалось создать счёт на оплату."); return; }
     window.Telegram.WebApp.openInvoice(data.result, (status) => {
       if (status === "paid") {
-        SAVE.starsUpgrades[key] = true;
+        SAVE.starsUpgrades[key] = lvl + 1;
         writeSave(SAVE);
-        sendAnalytics("⭐ Покупка за Stars: " + def.name + " — " + getPlayerLabel());
+        sendAnalytics("⭐ Покупка за Stars: " + def.name + " ур. " + (lvl + 1) + " — " + getPlayerLabel());
         renderShop();
       }
     });
   }).catch(() => { window.alert("Ошибка сети при создании счёта."); });
 }
 
-function watchAdForUpgrade(key) {
+function watchAdForUpgrade(key, rowEl) {
   if (!window.Adsgram) {
     window.alert("Реклама работает только внутри Telegram.");
     return;
   }
+  if (rowEl.classList.contains("loading")) return; // защита от повторного клика, пока грузится
+  rowEl.classList.add("loading");
+  const priceEl = rowEl.querySelector(".price");
+  const oldPriceHtml = priceEl.innerHTML;
+  priceEl.innerHTML = "⏳";
+
+  let rewarded = false;
+  const finish = (ok) => {
+    rowEl.classList.remove("loading");
+    if (!ok) priceEl.innerHTML = oldPriceHtml;
+  };
+
+  let controller;
   try {
-    window.Adsgram.init({ blockId: ADSGRAM_BLOCK_ID_REWARD }).show().then(() => {
-      EP().upgrades[key] = (EP().upgrades[key] || 0) + 1;
-      writeSave(SAVE);
-      renderShop();
-    }).catch(() => { /* реклама не досмотрена/ошибка — без начисления */ });
-  } catch (e) { window.alert("Не удалось показать рекламу."); }
+    controller = window.Adsgram.init({ blockId: ADSGRAM_BLOCK_ID_REWARD });
+  } catch (e) {
+    window.alert("Не удалось показать рекламу.");
+    finish(false);
+    return;
+  }
+
+  controller.addEventListener("onReward", () => {
+    rewarded = true;
+    EP().upgrades[key] = (EP().upgrades[key] || 0) + 1;
+    writeSave(SAVE);
+    renderShop(); // перерисует магазин целиком, finish() для этой строки уже не нужен
+  });
+
+  controller.show().catch(() => {
+    if (!rewarded) {
+      window.alert("Реклама временно недоступна, попробуй позже.");
+      finish(false);
+    }
+  });
 }
 
 function renderShop() {
@@ -795,6 +840,7 @@ function renderShop() {
     list.appendChild(row);
   });
 
+  list.appendChild(document.createElement("div")).className = "shop-section-gap";
   UNIT_ORDER.filter((k) => !UNIT_DEFS[k].alwaysUnlocked).forEach((key) => {
     const def = UNIT_DEFS[key];
     const unlocked = EP().unlocked[key];
@@ -803,7 +849,7 @@ function renderShop() {
     row.className = "shop-row" + (unlocked || SAVE.gold < cost ? " disabled" : "");
     row.innerHTML =
       '<div class="icon">' + def.icon + '</div>' +
-      '<div class="info"><div class="name">' + def.name + ' · разовая разблокировка</div>' +
+      '<div class="info"><div class="name">' + def.name + '</div>' +
       '<div class="desc">' + (unlocked ? "Открыт" : "Открыть нового юнита") + '</div></div>' +
       '<div class="price">' + (unlocked ? "✅" : "🪙 " + cost) + '</div>';
     if (!unlocked) {
@@ -820,6 +866,7 @@ function renderShop() {
 
   // Абгрейды только за рекламу — никогда за золото
   if (EPOCHS[SAVE.currentEpoch].adUpgradeDefs) {
+    list.appendChild(document.createElement("div")).className = "shop-section-gap";
     Object.keys(EPOCHS[SAVE.currentEpoch].adUpgradeDefs).forEach((key) => {
       const def = EPOCHS[SAVE.currentEpoch].adUpgradeDefs[key];
       const lvl = EP().upgrades[key] || 0;
@@ -834,7 +881,7 @@ function renderShop() {
         (maxed ? '' : ' <span style="color:var(--accent);">→ ' + upgradeDisplayValue(key, lvl + 1) + '</span>') +
         '</div></div>' +
         '<div class="price">' + (maxed ? "МАКС" : "📺") + '</div>';
-      if (!maxed) row.addEventListener("click", () => watchAdForUpgrade(key));
+      if (!maxed) row.addEventListener("click", () => watchAdForUpgrade(key, row));
       list.appendChild(row);
     });
   }
@@ -842,17 +889,20 @@ function renderShop() {
   // Покупки за Stars — показываем только во вкладке Средневековья, как договаривались,
   // но сами эффекты этих покупок действуют независимо от того, в какой эпохе играешь.
   if (SAVE.currentEpoch === "medieval") {
+    list.appendChild(document.createElement("div")).className = "shop-section-gap";
     Object.keys(STARS_UPGRADE_DEFS).forEach((key) => {
       const def = STARS_UPGRADE_DEFS[key];
-      const owned = SAVE.starsUpgrades[key];
+      const lvl = SAVE.starsUpgrades[key] || 0;
+      const maxed = lvl >= def.max;
+      const cost = maxed ? 0 : starsUpgradeCost(def, lvl);
       const row = document.createElement("div");
-      row.className = "shop-row stars-row" + (owned ? " disabled" : "");
+      row.className = "shop-row stars-row" + (maxed ? " disabled" : "");
       row.innerHTML =
         '<div class="icon">' + def.icon + '</div>' +
-        '<div class="info"><div class="name">' + def.name + ' · за Telegram Stars</div>' +
+        '<div class="info"><div class="name">' + def.name + ' · ур. ' + lvl + '</div>' +
         '<div class="desc">' + def.desc + '</div></div>' +
-        '<div class="price">' + (owned ? "✅" : "⭐ " + def.costStars) + '</div>';
-      if (!owned) row.addEventListener("click", () => buyWithStars(key, def));
+        '<div class="price">' + (maxed ? "МАКС" : "⭐ " + cost) + '</div>';
+      if (!maxed) row.addEventListener("click", () => buyWithStars(key, def));
       list.appendChild(row);
     });
   }
@@ -882,7 +932,7 @@ function startBattle(levelIndex) {
     playerHpMax: 100 + baseHpBonus(),
     enemyHp: 100 * levelDef.hpMul * diff.hpMul,
     enemyHpMax: 100 * levelDef.hpMul * diff.hpMul,
-    food: SAVE.starsUpgrades.startFood ? 10 : 0,
+    food: 15 * (SAVE.starsUpgrades.startFood || 0),
     foodCycleProgress: 0,
     foodCycleSeconds: 0.77 / (foodRateMul() * diff.foodMul),
     units: [],
@@ -954,8 +1004,8 @@ function trySpawnPlayerUnit(key) {
   spawnUnit("player", key);
 }
 
-const GROUND_LANE_OFFSETS = [4, 9, 14, 6, 11, 16, 19];
-const AIR_LANE_OFFSETS = [22, 27, 32, 24, 29];
+const GROUND_LANE_OFFSETS = [2, 5, 8, 3, 6, 9, 11];
+const AIR_LANE_OFFSETS = [15, 19, 23, 17, 21];
 
 function spawnUnit(side, key) {
   const def = UNIT_DEFS[key];
@@ -981,6 +1031,7 @@ function spawnUnit(side, key) {
     attacks: def.attacks,
     categories: def.categories,
     isAir: def.isAir,
+    facesLeft: !!def.facesLeft,
     icon: def.icon,
     cooldown: 0,
     el: null,
@@ -993,7 +1044,9 @@ function mountUnitEl(unit) {
   const node = document.createElement("div");
   node.className = "unit side-" + unit.side;
   node.style.bottom = unit.lane + "%";
-  node.innerHTML = '<div class="hp-track"><div class="hp-fill"></div></div><span>' + unit.icon + '</span>';
+  const mirror = unit.facesLeft ? unit.side === "player" : unit.side === "enemy";
+  const span = mirror ? '<span style="display:inline-block; transform:scaleX(-1);">' + unit.icon + '</span>' : '<span>' + unit.icon + '</span>';
+  node.innerHTML = '<div class="hp-track"><div class="hp-fill"></div></div>' + span;
   el("lane-wrap").appendChild(node);
   unit.el = node;
   updateUnitEl(unit);
@@ -1109,7 +1162,7 @@ function onUnitKilled(victim, killer) {
   }
   if (killer.side === "player") {
     const base = GOLD_PER_KILL[victim.type] || 2;
-    const reward = Math.round(base * (SAVE.starsUpgrades.bonusGold ? 1.2 : 1));
+    const reward = Math.round(base * (1 + 0.15 * (SAVE.starsUpgrades.bonusGold || 0)));
     SAVE.gold += reward;
     writeSave(SAVE); // фикс бага: раньше золото от убийств не сохранялось до конца уровня
     updateGoldDisplay();
@@ -1181,6 +1234,12 @@ function endBattle(won) {
     EP().clearedLevels = Math.min(LEVELS.length, EP().clearedLevels + 1);
   }
   if (won) recordLevelDifficulty(battle.levelIndex, SAVE.difficulty);
+  SAVE.battlesSinceAd = (SAVE.battlesSinceAd || 0) + 1;
+  let showPeriodicAd = false;
+  if (SAVE.battlesSinceAd >= 5) {
+    SAVE.battlesSinceAd = 0;
+    showPeriodicAd = true;
+  }
   writeSave(SAVE);
 
   sendAnalytics(
@@ -1226,6 +1285,11 @@ function endBattle(won) {
   el("result-btn-menu").onclick = () => { stopBattle(); renderMenu(); showScreen("screen-menu"); };
 
   overlay.classList.add("show");
+
+  if (showPeriodicAd && window.Adsgram) {
+    try { window.Adsgram.init({ blockId: ADSGRAM_BLOCK_ID_INTRO }).show().catch(() => {}); }
+    catch (e) { /* реклама не загрузилась — не блокируем игрока */ }
+  }
 }
 
 /* ============ Аналитика (без сервера, через Telegram Bot API) ============
