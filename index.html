@@ -274,9 +274,10 @@
 </div>
 
 <script>
-/* VERSION: v3 (stats-era) — реклама временно отключена (закомментирована),
-   rewarded-апгрейды unitSpeed/crit переключены на Stars (1⭐ и 2⭐ за уровень) */
-const GAME_VERSION = "v3 (stats-era)";
+/* VERSION: v4 (stats-era) — дозакупка монет за Stars при нехватке,
+   диагностика Stars-платежей (логируем любой статус колбэка),
+   рефакторинг openStarsInvoice в общую функцию */
+const GAME_VERSION = "v4 (stats-era)";
 
 /* ============ Конфигурация: Каменный век ============ */
 const STONE_UNIT_DEFS = {
@@ -745,10 +746,9 @@ function renderLevels() {
 }
 
 /* ============ Магазин ============ */
-function buyWithStars(key, def) {
-  const lvl = SAVE.starsUpgrades[key] || 0;
-  if (lvl >= def.max) return;
-  const cost = starsUpgradeCost(def, lvl);
+/* Общая функция для Stars-инвойса — используется в buyWithStars,
+   topUpWithStars и рекламных апгрейдах. Логирует любой статус для диагностики. */
+function openStarsInvoice({ title, description, payload, amount, onPaid }) {
   if (!window.Telegram || !window.Telegram.WebApp || !window.Telegram.WebApp.openInvoice) {
     window.alert("Покупка за Telegram Stars работает только внутри приложения Telegram.");
     return;
@@ -757,20 +757,61 @@ function buyWithStars(key, def) {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      title: def.name, description: def.desc, payload: key + ":" + (lvl + 1), currency: "XTR",
-      prices: [{ label: def.name + " ур. " + (lvl + 1), amount: cost }],
+      title, description, payload, currency: "XTR",
+      prices: [{ label: title, amount }],
     }),
   }).then((r) => r.json()).then((data) => {
-    if (!data.ok) { window.alert("Не удалось создать счёт на оплату."); return; }
+    if (!data.ok) { window.alert("Не удалось создать счёт на оплату. Ошибка: " + (data.description || "?")); return; }
     window.Telegram.WebApp.openInvoice(data.result, (status) => {
-      if (status === "paid") {
-        SAVE.starsUpgrades[key] = lvl + 1;
-        writeSave(SAVE);
-        sessionStarsPurchases.push(def.name + " ур. " + (lvl + 1));
-        renderShop();
-      }
+      // Диагностика: логируем любой статус, не только "paid"
+      sendAnalytics("⭐ Stars invoice статус: " + status + " | payload: " + payload + " | " + getPlayerLabel());
+      if (status === "paid") onPaid();
     });
-  }).catch(() => { window.alert("Ошибка сети при создании счёта."); });
+  }).catch((e) => { window.alert("Ошибка сети при создании счёта: " + e.message); });
+}
+
+function buyWithStars(key, def) {
+  const lvl = SAVE.starsUpgrades[key] || 0;
+  if (lvl >= def.max) return;
+  const cost = starsUpgradeCost(def, lvl);
+  openStarsInvoice({
+    title: def.name,
+    description: def.desc,
+    payload: key + ":" + (lvl + 1),
+    amount: cost,
+    onPaid: () => {
+      SAVE.starsUpgrades[key] = lvl + 1;
+      writeSave(SAVE);
+      sessionStarsPurchases.push(def.name + " ур. " + (lvl + 1));
+      renderShop();
+    },
+  });
+}
+
+/* Дозакупка монет за звёзды когда не хватает.
+   Коэффициент: 1⭐ = 10🪙, округление вверх до целой звезды. */
+const STARS_TO_COINS_RATE = 10;
+function topUpWithStars(deficit, onSuccess) {
+  const stars = Math.ceil(deficit / STARS_TO_COINS_RATE);
+  const coins = stars * STARS_TO_COINS_RATE;
+  const ok = window.confirm(
+    "Не хватает 🪙" + deficit + ".\n" +
+    "Докупить " + coins + " монет за ⭐" + stars + "?"
+  );
+  if (!ok) return;
+  openStarsInvoice({
+    title: "Монеты",
+    description: coins + " монет для покупки в магазине",
+    payload: "topup_coins:" + coins,
+    amount: stars,
+    onPaid: () => {
+      SAVE.gold += coins;
+      writeSave(SAVE);
+      sessionStarsPurchases.push("Монеты +" + coins);
+      renderShop();
+      onSuccess && onSuccess();
+    },
+  });
 }
 
 function watchAdForUpgrade(key, rowEl) {
@@ -838,7 +879,18 @@ function renderShop() {
       '<div class="price">' + (maxed ? "МАКС" : "🪙 " + cost) + '</div>';
     if (!maxed) {
       row.addEventListener("click", () => {
-        if (SAVE.gold < cost) return;
+        if (SAVE.gold < cost) {
+          topUpWithStars(cost - SAVE.gold, () => {
+            // после дозакупки монет пробуем купить апгрейд снова
+            if (SAVE.gold >= cost) {
+              SAVE.gold -= cost;
+              EP().upgrades[key] = lvl + 1;
+              writeSave(SAVE);
+              renderShop();
+            }
+          });
+          return;
+        }
         SAVE.gold -= cost;
         EP().upgrades[key] = lvl + 1;
         writeSave(SAVE);
@@ -862,7 +914,17 @@ function renderShop() {
       '<div class="price">' + (unlocked ? "✅" : "🪙 " + cost) + '</div>';
     if (!unlocked) {
       row.addEventListener("click", () => {
-        if (SAVE.gold < cost) return;
+        if (SAVE.gold < cost) {
+          topUpWithStars(cost - SAVE.gold, () => {
+            if (SAVE.gold >= cost) {
+              SAVE.gold -= cost;
+              EP().unlocked[key] = true;
+              writeSave(SAVE);
+              renderShop();
+            }
+          });
+          return;
+        }
         SAVE.gold -= cost;
         EP().unlocked[key] = true;
         writeSave(SAVE);
@@ -896,32 +958,20 @@ function renderShop() {
         // Используем buyWithStars с inline-определением (adUpgrade не в STARS_UPGRADE_DEFS,
         // поэтому вызываем логику напрямую через временный def-объект)
         row.addEventListener("click", () => {
-          if (!window.Telegram || !window.Telegram.WebApp || !window.Telegram.WebApp.openInvoice) {
-            window.alert("Покупка за Telegram Stars работает только внутри приложения Telegram.");
-            return;
-          }
           const currentLvl = EP().upgrades[key] || 0;
           if (currentLvl >= def.max) return;
-          fetch("https://api.telegram.org/bot" + ANALYTICS_BOT_TOKEN + "/createInvoiceLink", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              title: def.name, description: def.desc,
-              payload: "ad_upgrade:" + key + ":" + (currentLvl + 1),
-              currency: "XTR",
-              prices: [{ label: def.name + " ур. " + (currentLvl + 1), amount: starsCost }],
-            }),
-          }).then((r) => r.json()).then((data) => {
-            if (!data.ok) { window.alert("Не удалось создать счёт на оплату."); return; }
-            window.Telegram.WebApp.openInvoice(data.result, (status) => {
-              if (status === "paid") {
-                EP().upgrades[key] = currentLvl + 1;
-                writeSave(SAVE);
-                sessionStarsPurchases.push(def.name + " ур. " + (currentLvl + 1));
-                renderShop();
-              }
-            });
-          }).catch(() => { window.alert("Ошибка сети при создании счёта."); });
+          openStarsInvoice({
+            title: def.name,
+            description: def.desc,
+            payload: "ad_upgrade:" + key + ":" + (currentLvl + 1),
+            amount: starsCost,
+            onPaid: () => {
+              EP().upgrades[key] = currentLvl + 1;
+              writeSave(SAVE);
+              sessionStarsPurchases.push(def.name + " ур. " + (currentLvl + 1));
+              renderShop();
+            },
+          });
         });
       }
       list.appendChild(row);
