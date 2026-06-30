@@ -272,6 +272,10 @@
 </div>
 
 <script>
+/* VERSION: v2 (stats-era) — расширенная аналитика боя (юниты, волна смерти,
+   HP базы, апгрейды), сводка сессии (реклама/Stars, кол-во боёв) */
+const GAME_VERSION = "v2 (stats-era)";
+
 /* ============ Конфигурация: Каменный век ============ */
 const STONE_UNIT_DEFS = {
   infantry: { name: "Дикарь с дубиной", icon: "🪓", cost: 10, hp: 30, atk: 6, speed: 0.55, range: 4,
@@ -759,7 +763,7 @@ function buyWithStars(key, def) {
       if (status === "paid") {
         SAVE.starsUpgrades[key] = lvl + 1;
         writeSave(SAVE);
-        sendAnalytics("⭐ Покупка за Stars: " + def.name + " ур. " + (lvl + 1) + " — " + getPlayerLabel());
+        sessionStarsPurchases.push(def.name + " ур. " + (lvl + 1));
         renderShop();
       }
     });
@@ -795,6 +799,7 @@ function watchAdForUpgrade(key, rowEl) {
   controller.addEventListener("onReward", () => {
     rewarded = true;
     EP().upgrades[key] = (EP().upgrades[key] || 0) + 1;
+    sessionRewardedAds++;
     writeSave(SAVE);
     renderShop(); // перерисует магазин целиком, finish() для этой строки уже не нужен
   });
@@ -942,6 +947,9 @@ function startBattle(levelIndex) {
     over: false,
     laneCounters: {},
     speedMul: 1,
+    spawnedByPlayer: {},
+    deathElapsed: null,
+    deathWave: null,
   };
   el("tent-player").innerHTML = baseSvgFn(SIDE_COLORS.player.main, SIDE_COLORS.player.dark);
   el("tent-enemy").innerHTML = baseSvgFn(SIDE_COLORS.enemy.main, SIDE_COLORS.enemy.dark);
@@ -1001,6 +1009,7 @@ function trySpawnPlayerUnit(key) {
   const def = UNIT_DEFS[key];
   if (battle.food < def.cost) return;
   battle.food -= def.cost;
+  battle.spawnedByPlayer[key] = (battle.spawnedByPlayer[key] || 0) + 1;
   spawnUnit("player", key);
 }
 
@@ -1213,11 +1222,44 @@ function checkBattleEnd() {
   if (battle.over) return;
   if (battle.playerHp <= 0) {
     battle.over = true;
+    battle.deathElapsed = battle.elapsed;
+    battle.deathWave = battle.levelDef.waves.length - battle.waveQueue.length;
     endBattle(false);
   } else if (battle.enemyHp <= 0) {
     battle.over = true;
     endBattle(true);
   }
+}
+
+function formatSpawnedUnits() {
+  const parts = UNIT_ORDER
+    .filter((k) => battle.spawnedByPlayer[k])
+    .map((k) => UNIT_DEFS[k].icon + "×" + battle.spawnedByPlayer[k]);
+  return parts.length ? parts.join(" ") : "никого не призвал";
+}
+
+function formatUpgradesCompact() {
+  const keys = Object.keys(UPGRADE_DEFS);
+  if (EPOCHS[SAVE.currentEpoch].adUpgradeDefs) keys.push(...Object.keys(EPOCHS[SAVE.currentEpoch].adUpgradeDefs));
+  return keys.map((k) => {
+    const def = UPGRADE_DEFS[k] || EPOCHS[SAVE.currentEpoch].adUpgradeDefs[k];
+    return def.icon + (EP().upgrades[k] || 0);
+  }).join(" ");
+}
+
+function formatBaseHpInfo(won) {
+  if (won) {
+    const pct = Math.round((battle.playerHp / battle.playerHpMax) * 100);
+    return "своя база цела на " + pct + "%";
+  }
+  const pct = Math.round((battle.enemyHp / battle.enemyHpMax) * 100);
+  return "вражеская база была разрушена на " + (100 - pct) + "%";
+}
+
+function formatDeathInfo() {
+  if (battle.deathWave === null) return "";
+  const totalWaves = battle.levelDef.waves.length;
+  return " | пал на волне " + battle.deathWave + "/" + totalWaves + " (" + battle.deathElapsed.toFixed(1) + "с)";
 }
 
 function endBattle(won) {
@@ -1235,16 +1277,25 @@ function endBattle(won) {
   }
   if (won) recordLevelDifficulty(battle.levelIndex, SAVE.difficulty);
   SAVE.battlesSinceAd = (SAVE.battlesSinceAd || 0) + 1;
+  sessionBattles++;
   let showPeriodicAd = false;
   if (SAVE.battlesSinceAd >= 5) {
     SAVE.battlesSinceAd = 0;
     showPeriodicAd = true;
+    sessionInterstitials++;
   }
   writeSave(SAVE);
 
   sendAnalytics(
     (won ? "✅ Прошёл" : "❌ Проиграл") + " уровень " + (battle.levelIndex + 1) +
-    " (" + EPOCHS[SAVE.currentEpoch].name + ", " + (DIFFICULTIES[SAVE.difficulty] || {}).label + ") — " + getPlayerLabel()
+    " (" + EPOCHS[SAVE.currentEpoch].name + ", " + (DIFFICULTIES[SAVE.difficulty] || {}).label + ") — " + getPlayerLabel() +
+    "\nЮниты: " + formatSpawnedUnits() +
+    " | " + formatBaseHpInfo(won) +
+    formatDeathInfo() +
+    " | Прокачки: " + formatUpgradesCompact() +
+    "\nСессия пока: боёв " + sessionBattles +
+    " | реклама " + sessionRewardedAds + " за награду, " + sessionInterstitials + " интерстишл" +
+    " | Stars: " + (sessionStarsPurchases.length ? sessionStarsPurchases.join(", ") : "нет")
   );
   updateGoldDisplay();
 
@@ -1300,6 +1351,10 @@ function endBattle(won) {
 const ANALYTICS_BOT_TOKEN = "8211831789:AAFHVmDgd4SNtANOXRETRB0lfEBF8tQkVIQ";
 const ANALYTICS_CHAT_ID = "-5507283361";
 const sessionStartedAt = Date.now();
+let sessionBattles = 0;
+let sessionRewardedAds = 0;
+let sessionInterstitials = 0;
+let sessionStarsPurchases = [];
 
 function getDeviceLabel() {
   const ua = navigator.userAgent || "";
@@ -1338,10 +1393,15 @@ window.addEventListener("pagehide", () => {
   const minutes = ((Date.now() - sessionStartedAt) / 60000).toFixed(1);
   const stoneProgress = SAVE.epochs.stone.clearedLevels + "/" + EPOCHS.stone.levels.length;
   const medievalProgress = SAVE.epochs.medieval.clearedLevels + "/" + EPOCHS.medieval.levels.length;
+  const starsLine = sessionStarsPurchases.length ? sessionStarsPurchases.join(", ") : "нет";
   sendAnalytics(
     "🚪 Вышел: " + getPlayerLabel() +
     " | сессия: " + minutes + " мин" +
-    " | Каменный век: " + stoneProgress + " | Средневековье: " + medievalProgress,
+    " | боёв: " + sessionBattles +
+    " | Каменный век: " + stoneProgress + " | Средневековье: " + medievalProgress +
+    " | реклама: " + sessionRewardedAds + " за награду, " + sessionInterstitials + " интерстишл" +
+    " | Stars-покупки: " + starsLine +
+    " | " + GAME_VERSION,
     true
   );
 });
