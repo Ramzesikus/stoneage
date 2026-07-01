@@ -23,15 +23,34 @@
   .screen { display: none; flex-direction: column; height: 100%; }
   .screen.active { display: flex; }
 
-  #screen-menu { align-items: center; justify-content: center; padding: 20px; gap: 14px; }
-  #screen-menu h1 { font-size: 26px; margin: 0 0 4px; }
-  #screen-menu p { color: var(--text-dim); font-size: 13px; margin: 0 0 10px; text-align: center; }
+  #screen-menu {
+    align-items: center; justify-content: flex-start;
+    padding: 32px 20px 28px; gap: 12px; overflow-y: auto;
+  }
+  #menu-title-row {
+    display: flex; align-items: center; justify-content: space-between;
+    width: 100%; max-width: 320px;
+  }
+  #screen-menu h1 { font-size: 24px; margin: 0; }
+  #menu-gold-display { color: var(--accent); font-size: 16px; font-weight: 700; }
+  #screen-menu p { color: var(--text-dim); font-size: 13px; margin: 0; text-align: center; }
   .menu-btn {
-    width: 100%; max-width: 300px; padding: 16px; border-radius: 14px; border: none;
+    width: 100%; max-width: 320px; padding: 16px; border-radius: 14px; border: none;
     background: var(--panel); color: var(--text); font-size: 16px; cursor: pointer;
     display: flex; align-items: center; justify-content: space-between; gap: 10px;
   }
   .menu-btn .gold { color: var(--accent); font-size: 13px; }
+  /* Главная кнопка "В бой!" */
+  #btn-go-levels {
+    background: var(--accent); color: #2a2010; font-size: 20px; font-weight: 700;
+    justify-content: center; padding: 18px; border-radius: 16px;
+    letter-spacing: 0.5px; margin-top: 4px;
+  }
+  /* Кнопка магазина — иконка крупнее */
+  #btn-go-shop {
+    font-size: 15px; padding: 14px 16px;
+  }
+  #btn-go-shop img { width: 40px !important; height: 40px !important; }
   .diff-btn {
     flex: 1; padding: 8px 4px; border-radius: 10px; border: 2px solid transparent;
     background: var(--panel); color: var(--text-dim); font-size: 12px; cursor: pointer;
@@ -70,7 +89,7 @@
   .shop-row .price { font-size: 13px; font-weight: 700; color: var(--accent); white-space: nowrap; }
 
   #battle-controls {
-    position: absolute; top: 11%; left: 50%; transform: translateX(-50%);
+    position: absolute; top: 11%; right: 8px;
     display: flex; gap: 8px; z-index: 20;
   }
   .ctrl-btn {
@@ -88,8 +107,19 @@
     font-size: 16px; color: #fff; line-height: 1.7;
     text-shadow: 0 1px 4px #000, 0 1px 4px #000;
   }
-  #wave-counter { left: 8px; }
-  #kill-values { right: 8px; text-align: right; }
+  #wave-counter {
+    position: absolute; top: 19%; right: 8px; z-index: 20;
+    background: transparent; padding: 4px;
+    display: flex; gap: 3px; flex-wrap: wrap; justify-content: flex-end;
+    max-width: 160px;
+    text-shadow: 0 1px 4px #000, 0 1px 4px #000;
+  }
+  #kill-values {
+    position: absolute; top: 12%; left: 8px; z-index: 20;
+    background: transparent; padding: 6px 8px;
+    font-size: 17px; color: #fff; line-height: 1.9;
+    text-shadow: 0 1px 4px #000, 0 1px 4px #000;
+  }
   .mini-stat-line { display: block; }
   .mini-stat-label { color: var(--text-dim); margin-bottom: 3px; display: block; font-size: 11px; }
   #battle-top {
@@ -123,7 +153,6 @@
   .coin-fly {
     position: absolute; display: flex; align-items: center; gap: 3px;
     pointer-events: none; z-index: 50;
-    transition: left 0.7s cubic-bezier(.2,.6,.3,1), top 0.7s cubic-bezier(.2,.6,.3,1), opacity 0.7s ease-in;
   }
   .coin-fly img { width: 26px; height: 26px; object-fit: contain; }
   .coin-fly .coin-value { font-size: 11px; color: var(--accent); font-weight: 700; text-shadow: 0 1px 2px #000; }
@@ -215,14 +244,15 @@
 <div id="app">
 
   <div class="screen active" id="screen-menu">
-    <h1 id="menu-title">🏔️ Каменный век</h1>
-    <p>Племенные войны — отбей атаки и сломай вражескую базу</p>
+    <div id="menu-title-row">
+      <h1 id="menu-title">🏔️ Каменный век</h1>
+      <span id="menu-gold-display"></span>
+    </div>
     <div class="epoch-tabs" id="epoch-tabs-menu"></div>
-    <div id="difficulty-row" style="display:flex; gap:8px; width:100%; max-width:300px;"></div>
-    <button class="menu-btn" id="btn-go-levels">▶️ Играть <span class="gold" id="menu-gold"></span></button>
-    <button class="menu-btn" id="btn-go-shop"><img src="assets/icons/Shop.png" style="width:28px;height:28px;object-fit:contain;vertical-align:middle;margin-right:6px;filter:drop-shadow(0 0 1px rgba(0,0,0,0.4));"> Магазин</button>
-    <div class="back-link" id="btn-reset-progress" style="margin-top:8px;">↺ Начать заново (сбросить прогресс)</div>
-    <div id="unit-legend" style="display:flex; flex-direction:column; gap:6px; width:100%; max-width:320px; margin-top: 14px;"></div>
+    <div id="difficulty-row" style="display:flex; gap:8px; width:100%; max-width:320px;"></div>
+    <button class="menu-btn" id="btn-go-levels">В бой! <span class="gold" id="menu-gold" style="display:none;"></span></button>
+    <button class="menu-btn" id="btn-go-shop"><img src="assets/icons/Shop.png" style="width:40px;height:40px;object-fit:contain;vertical-align:middle;margin-right:10px;filter:drop-shadow(0 0 1px rgba(0,0,0,0.4));"> Магазин</button>
+    <div class="back-link" id="btn-reset-progress" style="margin-top:4px;">↺ Начать заново (сбросить прогресс)</div>
   </div>
 
   <div class="screen" id="screen-levels">
@@ -275,12 +305,16 @@
       <div class="tent player" id="tent-player"></div>
       <div class="tent enemy" id="tent-enemy"></div>
       <div id="battle-result">
-        <h2 id="result-title"></h2>
-        <p id="result-sub"></p>
-        <div style="display:flex; flex-direction:column; gap:10px; width:100%; max-width:260px;">
-          <button class="result-btn" id="result-btn-primary"></button>
-          <button class="result-btn result-btn-secondary" id="result-btn-shop">🛒 Магазин</button>
-          <button class="result-btn result-btn-secondary" id="result-btn-menu">‹ В меню</button>
+        <div id="result-icon" style="font-size:52px;line-height:1;margin-bottom:4px;"></div>
+        <h2 id="result-title" style="margin:0 0 4px;"></h2>
+        <div id="result-stats" style="display:flex;gap:16px;margin:10px 0 4px;"></div>
+        <p id="result-sub" style="font-size:12px;"></p>
+        <div style="display:flex; flex-direction:column; gap:8px; width:100%; max-width:280px;margin-top:8px;">
+          <button class="result-btn" id="result-btn-primary" style="font-size:18px;padding:14px;"></button>
+          <div style="display:flex;gap:8px;">
+            <button class="result-btn result-btn-secondary" id="result-btn-shop" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:12px 8px;"><img src="assets/icons/Shop.png" style="width:28px;height:28px;object-fit:contain;filter:drop-shadow(0 0 1px rgba(0,0,0,0.4));"> Магазин</button>
+            <button class="result-btn result-btn-secondary" id="result-btn-menu" style="flex:1;padding:12px 8px;">‹ В меню</button>
+          </div>
         </div>
       </div>
 
@@ -297,9 +331,10 @@
 </div>
 
 <script>
-/* VERSION: v8 (stats-era) — прозрачные UI-панели + текст с тенью, базы крупнее за экраном,
-   пауза, стрелы лучников, анимированные монеты, иконки апгрейдов/юнитов везде */
-const GAME_VERSION = "v8 (stats-era)";
+/* VERSION: v10 (stats-era) — редизайн меню (Вариант Б, "В бой!", Shop.png крупная),
+   редизайн экрана результата (иконка + статы + кнопки 2-в-ряд),
+   портретный кроп Background_2.png */
+const GAME_VERSION = "v10 (stats-era)";
 
 /* ============ Конфигурация: Каменный век ============ */
 const STONE_UNIT_DEFS = {
@@ -673,11 +708,10 @@ document.querySelectorAll("[data-back]").forEach((b) => {
 });
 
 function renderMenu() {
-  el("menu-gold").textContent = "🪙 " + SAVE.gold;
+  el("menu-gold-display").textContent = "🪙 " + SAVE.gold;
   el("menu-title").textContent = EPOCHS[SAVE.currentEpoch].tabIcon + " " + EPOCHS[SAVE.currentEpoch].name;
   renderEpochTabs("epoch-tabs-menu", renderMenu);
   renderDifficultyRow();
-  renderUnitLegend();
 }
 
 function renderDifficultyRow() {
@@ -1287,7 +1321,8 @@ function battleTick() {
   for (const unit of battle.units) {
     if (unit.hp <= 0) continue;
     const dir = unit.side === "player" ? 1 : -1;
-    const baseDist = unit.side === "player" ? (BASE_POS.enemy - unit.pos) : (unit.pos - BASE_POS.player);
+    const aOff = unit.isAir ? 7 : 0;
+    const baseDist = unit.side === "player" ? ((BASE_POS.enemy - aOff) - unit.pos) : (unit.pos - (BASE_POS.player + aOff));
     const { unit: target, dist } = findNearestEnemy(unit);
 
     const inRangeOfTarget = target && dist <= unit.range;
@@ -1310,12 +1345,16 @@ function battleTick() {
           if (target.hp <= 0) onUnitKilled(target, unit);
         } else {
           if (unit.side === "player") battle.enemyHp = Math.max(0, battle.enemyHp - dmg);
-          else battle.playerHp = Math.max(0, battle.playerHp - dmg * defenseMul());
+          else {
+            battle.playerHp = Math.max(0, battle.playerHp - dmg * defenseMul());
+            if (navigator.vibrate) navigator.vibrate(25);
+          }
         }
       }
     } else {
       unit.pos += dir * unit.speed * (TICK_MS / 100) * sp;
-      unit.pos = Math.max(BASE_POS.player, Math.min(BASE_POS.enemy, unit.pos));
+      const airOff = unit.isAir ? 7 : 0;
+      unit.pos = Math.max(BASE_POS.player + airOff, Math.min(BASE_POS.enemy - airOff, unit.pos));
     }
     updateUnitEl(unit);
   }
@@ -1340,13 +1379,10 @@ function spawnCoinFly(fromEl, value) {
 
   const coinWrap = document.createElement("div");
   coinWrap.className = "coin-fly";
-  coinWrap.style.left = (fromRect.left - wrapRect.left) + "px";
-  coinWrap.style.top = (fromRect.top - wrapRect.top) + "px";
 
   const coinImg = document.createElement("img");
   coinImg.src = "assets/icons/Coin_1.png";
   coinWrap.appendChild(coinImg);
-
   if (value > 1) {
     const valEl = document.createElement("span");
     valEl.className = "coin-value";
@@ -1354,6 +1390,10 @@ function spawnCoinFly(fromEl, value) {
     coinWrap.appendChild(valEl);
   }
 
+  // Старт: позиция убитого юнита
+  coinWrap.style.cssText = "position:absolute;pointer-events:none;z-index:50;display:flex;align-items:center;gap:3px;" +
+    "left:" + (fromRect.left - wrapRect.left) + "px;" +
+    "top:" + (fromRect.top - wrapRect.top) + "px;";
   wrap.appendChild(coinWrap);
 
   // Анимация кадров монеты
@@ -1361,14 +1401,27 @@ function spawnCoinFly(fromEl, value) {
   const frameTimer = setInterval(() => {
     frame = (frame % 3) + 1;
     coinImg.src = "assets/icons/Coin_" + frame + ".png";
-  }, 120);
+  }, 100);
+
+  // Фаза 1: падение на дорогу (случайная X по ширине дороги)
+  const roadX = wrapRect.width * (0.15 + Math.random() * 0.7);
+  const roadY = wrapRect.height * 0.71; // ~дорога: 29% от низа
 
   requestAnimationFrame(() => {
+    coinWrap.style.transition = "left 0.2s ease-out, top 0.3s cubic-bezier(.3,0,.6,1.4)";
+    coinWrap.style.left = roadX + "px";
+    coinWrap.style.top = roadY + "px";
+  });
+
+  // Фаза 2: полёт к счётчику золота
+  setTimeout(() => {
+    coinWrap.style.transition = "left 0.45s cubic-bezier(.2,.6,.3,1), top 0.45s cubic-bezier(.2,.6,.3,1), opacity 0.45s ease-in";
     coinWrap.style.left = (goldRect.left - wrapRect.left) + "px";
     coinWrap.style.top = (goldRect.top - wrapRect.top) + "px";
-    coinWrap.style.opacity = "0.2";
-  });
-  setTimeout(() => { coinWrap.remove(); clearInterval(frameTimer); }, 750);
+    coinWrap.style.opacity = "0";
+  }, 360);
+
+  setTimeout(() => { coinWrap.remove(); clearInterval(frameTimer); }, 850);
 }
 
 function onUnitKilled(victim, killer) {
@@ -1387,19 +1440,41 @@ function onUnitKilled(victim, killer) {
 }
 
 function renderWaveCounter() {
-  const counts = {};
-  battle.waveQueue.forEach((w) => { counts[w.type] = (counts[w.type] || 0) + 1; });
   const wrap = el("wave-counter");
-  const lines = UNIT_ORDER.filter((k) => counts[k]).map((k) =>
-    '<span class="mini-stat-line">' + UNIT_DEFS[k].icon + ' ×' + counts[k] + '</span>');
-  wrap.innerHTML = '<span class="mini-stat-label">Осталось:</span>' +
-    (lines.length ? lines.join("") : "Последние враги!");
+  if (!battle.waveQueue.length) {
+    wrap.innerHTML = '<span style="font-size:13px;color:#fff;text-shadow:0 1px 4px #000;">⚠</span>';
+    return;
+  }
+  // Показываем очередь в обратном порядке: следующий — крайний правый
+  const reversed = battle.waveQueue.slice().reverse();
+  const maxShow = 7;
+  const shown = reversed.slice(0, maxShow);
+  const icons = shown.map((w) => {
+    const src = UNIT_ICONS[w.type];
+    return src
+      ? '<img src="' + src + '" style="width:22px;height:22px;object-fit:contain;">'
+      : '<span>' + UNIT_DEFS[w.type].icon + '</span>';
+  });
+  let html = icons.join("");
+  if (reversed.length > maxShow) {
+    html = '<span style="font-size:11px;color:#fff;margin-right:2px;">+' + (reversed.length - maxShow) + '</span>' + html;
+  }
+  wrap.innerHTML = html;
 }
 
 function renderKillValues() {
-  const lines = UNIT_ORDER.map((k) =>
-    '<span class="mini-stat-line">' + UNIT_DEFS[k].icon + ' 🪙' + GOLD_PER_KILL[k] + '</span>');
-  el("kill-values").innerHTML = '<span class="mini-stat-label">За убийство:</span>' + lines.join("");
+  const coinSrc = "assets/icons/Coin_1.png";
+  const lines = UNIT_ORDER.map((k) => {
+    const unitIcon = UNIT_ICONS[k]
+      ? '<img src="' + UNIT_ICONS[k] + '" style="width:22px;height:22px;object-fit:contain;vertical-align:middle;">'
+      : UNIT_DEFS[k].icon;
+    const coinIcon = '<img src="' + coinSrc + '" style="width:16px;height:16px;object-fit:contain;vertical-align:middle;">';
+    return '<div style="display:flex;align-items:center;gap:5px;">' +
+      unitIcon +
+      '<span style="display:flex;align-items:center;gap:2px;min-width:36px;">' + coinIcon + GOLD_PER_KILL[k] + '</span>' +
+      '</div>';
+  });
+  el("kill-values").innerHTML = lines.join("");
 }
 
 function renderBattleHp() {
@@ -1513,23 +1588,53 @@ function endBattle(won) {
   const overlay = el("battle-result");
   const epochIdx = EPOCH_ORDER.indexOf(SAVE.currentEpoch);
   const nextEpochKey = EPOCH_ORDER[epochIdx + 1];
-
   const primaryBtn = el("result-btn-primary");
 
+  // Блок статистики
+  function makeStatBlock(val, label) {
+    return '<div style="text-align:center;">' +
+      '<div style="font-size:20px;font-weight:700;color:var(--accent);">' + val + '</div>' +
+      '<div style="font-size:10px;color:var(--text-dim);">' + label + '</div>' +
+      '</div>';
+  }
+  const hpPct = Math.round((battle.playerHp / battle.playerHpMax) * 100);
+  const enemyHpPct = Math.round((battle.enemyHp / battle.enemyHpMax) * 100);
+
   if (!won) {
-    el("result-title").textContent = "💀 Поражение";
-    el("result-sub").textContent = "База разрушена. Прокачка и золото остались с тобой — попробуй снова.";
+    el("result-icon").textContent = "💀";
+    el("result-title").textContent = "Поражение";
+    el("result-title").style.color = "var(--bad)";
+    el("result-stats").innerHTML =
+      makeStatBlock((100 - enemyHpPct) + "%", "враг выжил") +
+      '<div style="width:1px;background:#ffffff20;"></div>' +
+      makeStatBlock("🪙 " + SAVE.gold, "золото");
+    el("result-sub").textContent = "Прокачайся в магазине и попробуй снова.";
     primaryBtn.textContent = "Повторить";
+    primaryBtn.style.background = "var(--bad)";
+    primaryBtn.style.color = "#fff";
     primaryBtn.onclick = () => { const lvl = battle.levelIndex; stopBattle(); startBattle(lvl); };
   } else if (!isLastLevel) {
-    el("result-title").textContent = "🎉 Победа!";
-    el("result-sub").textContent = "Уровень пройден. Бонус: 🪙 " + levelBonus + " (+ золото за убитых).";
-    primaryBtn.textContent = "Дальше";
+    el("result-icon").textContent = "🎉";
+    el("result-title").textContent = "Победа!";
+    el("result-title").style.color = "var(--accent)";
+    el("result-stats").innerHTML =
+      makeStatBlock("+" + levelBonus, "🪙 бонус") +
+      '<div style="width:1px;background:#ffffff20;"></div>' +
+      makeStatBlock(hpPct + "%", "база цела");
+    el("result-sub").textContent = "Уровень " + (battle.levelIndex + 1) + " пройден.";
+    primaryBtn.textContent = "Дальше →";
+    primaryBtn.style.background = "var(--accent)";
+    primaryBtn.style.color = "#2a2010";
     primaryBtn.onclick = () => { const next = battle.levelIndex + 1; stopBattle(); startBattle(next); };
   } else if (nextEpochKey) {
-    el("result-title").textContent = "🏆 Эпоха пройдена!";
-    el("result-sub").textContent = EPOCHS[SAVE.currentEpoch].name + " завоёван — впереди " + EPOCHS[nextEpochKey].name + ".";
-    primaryBtn.textContent = "Следующая эпоха";
+    el("result-icon").textContent = "🏆";
+    el("result-title").textContent = "Эпоха пройдена!";
+    el("result-title").style.color = "var(--accent)";
+    el("result-stats").innerHTML = makeStatBlock(EPOCHS[nextEpochKey].tabIcon + " " + EPOCHS[nextEpochKey].name, "следующая эпоха");
+    el("result-sub").textContent = EPOCHS[SAVE.currentEpoch].name + " завоёван.";
+    primaryBtn.textContent = "Следующая эпоха →";
+    primaryBtn.style.background = "var(--accent)";
+    primaryBtn.style.color = "#2a2010";
     primaryBtn.onclick = () => {
       stopBattle();
       switchEpoch(nextEpochKey);
@@ -1537,9 +1642,14 @@ function endBattle(won) {
       showScreen("screen-levels");
     };
   } else {
-    el("result-title").textContent = "🏆 Все эпохи пройдены!";
-    el("result-sub").textContent = "Ты прошёл всё, что есть на данный момент. Дальше — новые обновления.";
+    el("result-icon").textContent = "🏆";
+    el("result-title").textContent = "Всё пройдено!";
+    el("result-title").style.color = "var(--accent)";
+    el("result-stats").innerHTML = makeStatBlock("🎊", "ты лучший");
+    el("result-sub").textContent = "Все эпохи завоёваны. Дальше — новые обновления.";
     primaryBtn.textContent = "В меню";
+    primaryBtn.style.background = "var(--accent)";
+    primaryBtn.style.color = "#2a2010";
     primaryBtn.onclick = () => { stopBattle(); renderMenu(); showScreen("screen-menu"); };
   }
 
@@ -1623,6 +1733,9 @@ if (window.Telegram && window.Telegram.WebApp) {
   window.Telegram.WebApp.ready();
   window.Telegram.WebApp.expand();
 }
+
+// Preload фона — чтобы не грузился во время боя
+(function() { const img = new Image(); img.src = "assets/Background_2.png"; })();
 
 renderMenu();
 
