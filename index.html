@@ -5,9 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Каменный век — Племенные войны</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-<!-- AdsGram SDK — временно отключено
-<script src="https://sad.adsgram.ai/js/sad.min.js"></script>
--->
 <style>
   :root {
     --bg: #1a2614; --panel: #24331c; --accent: #ffcc66; --text: #f0f0e8;
@@ -23,16 +20,25 @@
   .screen { display: none; flex-direction: column; height: 100%; }
   .screen.active { display: flex; }
 
-  #screen-menu {
-    align-items: center; justify-content: center;
-    padding: 24px 20px 28px; gap: 10px; overflow-y: auto;
+  #screen-menu { padding: 0; }
+  #menu-header-fixed {
+    flex-shrink: 0; display: flex; flex-direction: column; align-items: center;
+    gap: 10px; padding: 20px 20px 10px;
+  }
+  #menu-scroll {
+    flex: 1; overflow-y: auto; display: flex; flex-direction: column;
+    align-items: center; gap: 10px; padding: 4px 20px 10px;
+  }
+  #menu-footer-fixed {
+    flex-shrink: 0; display: flex; justify-content: center;
+    padding: 10px 20px calc(16px + env(safe-area-inset-bottom, 0px));
   }
   #menu-title-row {
     display: flex; align-items: center; justify-content: space-between;
     width: 100%; max-width: 320px;
   }
   #screen-menu h1 { font-size: 24px; margin: 0; }
-  #menu-gold-display { color: var(--accent); font-size: 15px; font-weight: 700; display:flex;align-items:center;gap:4px; }
+  #menu-gold-display { color: var(--accent); font-size: 17px; font-weight: 700; display:flex;align-items:center;gap:5px; }
   #screen-menu p { color: var(--text-dim); font-size: 13px; margin: 0; text-align: center; }
   .menu-btn {
     width: 100%; max-width: 320px; padding: 16px; border-radius: 14px; border: none;
@@ -43,39 +49,58 @@
   #btn-go-levels {
     background: var(--accent); color: #2a2010; font-size: 20px; font-weight: 700;
     justify-content: center; padding: 18px; border-radius: 16px;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.5px; width: 100%; max-width: 320px;
   }
   /* Вкладки описания воинов */
   #menu-info-tabs { display: flex; gap: 6px; width: 100%; max-width: 320px; }
   .menu-info-tab {
-    flex: 1; padding: 6px 4px; border-radius: 8px; border: 1px solid var(--panel);
+    flex: 1; padding: 8px 4px; border-radius: 8px; border: 1px solid var(--panel);
     background: transparent; color: var(--text-dim); font-size: 12px; cursor: pointer; text-align: center;
   }
   .menu-info-tab.active { background: var(--panel); color: var(--text); }
-  #menu-unit-legend { width: 100%; max-width: 320px; display: flex; flex-direction: column; gap: 6px; }
-  /* Вторичные кнопки (Сброс + Магазин) */
+  #menu-hq-content, #menu-unit-legend, #menu-enemy-legend {
+    width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: 10px; align-items: center;
+  }
+  /* Призовой фонд (вкладка Штаб) */
+  .prize-block {
+    background: var(--panel); border-radius: 14px; padding: 18px 16px;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    text-align: center; width: 100%; max-width: 320px;
+  }
+  .prize-block .prize-star { font-size: 42px; line-height: 1; }
+  .prize-block .prize-amount { font-size: 22px; font-weight: 700; color: var(--accent); }
+  .prize-block .prize-label { font-size: 12px; color: var(--text-dim); max-width: 260px; }
+  /* Вторичные кнопки (Сброс + Магазин), теперь внутри вкладки Штаб */
   #menu-secondary-row {
-    display: flex; justify-content: space-between; align-items: flex-end;
-    width: 100%; max-width: 320px; margin-bottom: 4px;
+    display: flex; justify-content: center; gap: 40px; align-items: flex-end;
+    width: 100%; max-width: 320px;
   }
   .menu-sec-btn {
     display: flex; flex-direction: column; align-items: center; gap: 4px;
     background: none; border: none; cursor: pointer; color: var(--text-dim); padding: 4px 8px;
   }
-  .menu-sec-btn img { width: 44px; height: 44px; object-fit: contain; }
-  .menu-sec-btn .sec-icon { font-size: 28px; line-height: 1; }
-  .menu-sec-btn span { font-size: 11px; }
+  .menu-sec-btn img { width: 60px; height: 60px; object-fit: contain; }
+  .menu-sec-btn .sec-icon { font-size: 40px; line-height: 1; }
+  .menu-sec-btn span { font-size: 12px; }
   .diff-btn {
     flex: 1; padding: 8px 4px; border-radius: 10px; border: 2px solid transparent;
     background: var(--panel); color: var(--text-dim); font-size: 12px; cursor: pointer;
   }
   .diff-btn.active { border-color: var(--accent); color: var(--text); font-weight: 700; }
-  .legend-item {
-    background: var(--panel); border-radius: 10px; padding: 6px 10px;
-    display: flex; align-items: center; gap: 10px; text-align: left;
+  /* Карточки воинов 2x2 (свои / вражеские) */
+  .unit-card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
+  .unit-card {
+    background: var(--panel); border-radius: 12px; padding: 10px 8px;
+    display: flex; flex-direction: column; align-items: center; gap: 3px; text-align: center;
   }
-  .legend-item .ic { font-size: 20px; flex-shrink: 0; }
-  .legend-item .desc { font-size: 11px; color: var(--text-dim); line-height: 1.25; }
+  .unit-card .portrait { width: 68px; height: 68px; object-fit: contain; }
+  .unit-card .name { font-size: 13px; font-weight: 700; }
+  .unit-card .desc { font-size: 10px; color: var(--text-dim); line-height: 1.25; min-height: 26px; }
+  .unit-card .stat-row {
+    display: flex; flex-wrap: wrap; gap: 3px 7px; justify-content: center;
+    font-size: 10.5px; color: var(--text); margin-top: 2px; border-top: 1px solid #ffffff14; padding-top: 5px; width: 100%;
+  }
+  .unit-card .stat-row b { color: var(--accent); font-weight: 700; }
 
   #screen-levels { padding: 16px; gap: 10px; align-items: center; }
   #screen-levels h2 { margin: 6px 0 10px; }
@@ -89,18 +114,20 @@
   .back-link { color: var(--text-dim); font-size: 14px; margin-top: 16px; cursor: pointer; }
 
   #screen-shop { padding: 16px; gap: 10px; overflow-y: auto; }
-  #screen-shop h2 { margin: 6px 0; text-align: center; }
-  .shop-gold { text-align: center; color: var(--accent); font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+  .shop-header-row { display: flex; align-items: center; justify-content: space-between; width: 100%; max-width: 340px; margin: 0 auto; }
+  .shop-back-btn { color: var(--text-dim); font-size: 14px; cursor: pointer; padding: 6px 4px; }
+  #screen-shop h2 { margin: 6px 0; text-align: left; }
+  .shop-gold { text-align: center; color: var(--accent); font-size: 20px; font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; gap: 6px; }
   .shop-row {
-    display: flex; align-items: center; gap: 10px; background: var(--panel);
+    display: flex; align-items: center; gap: 12px; background: var(--panel);
     border-radius: 12px; padding: 10px 12px; cursor: pointer;
   }
   .shop-row.disabled { opacity: 0.4; cursor: default; }
-  .shop-row .icon { font-size: 26px; width: 32px; text-align: center; }
+  .shop-row .icon { font-size: 34px; width: 44px; text-align: center; }
   .shop-row .info { flex: 1; }
   .shop-row .info .name { font-size: 14px; font-weight: 600; }
   .shop-row .info .desc { font-size: 11px; color: var(--text-dim); }
-  .shop-row .price { font-size: 13px; font-weight: 700; color: var(--accent); white-space: nowrap; }
+  .shop-row .price { font-size: 15px; font-weight: 700; color: var(--accent); white-space: nowrap; display: flex; align-items: center; gap: 4px; }
 
   #battle-controls {
     position: absolute; top: 11%; right: 8px;
@@ -142,13 +169,13 @@
     padding: 8px 12px; background: transparent; gap: 10px;
   }
   .base-hp-wrap { flex: 1; }
-  .base-hp-label { font-size: 12px; color: #fff; text-shadow: 0 1px 4px #000, 0 1px 4px #000; }
+  .base-hp-label { font-size: 15px; color: #fff; text-shadow: 0 1px 4px #000, 0 1px 4px #000; font-weight: 600; }
   .base-hp-track { height: 10px; border-radius: 5px; background: #00000040; overflow: hidden; margin-top: 2px; }
   .base-hp-fill { height: 100%; border-radius: 5px; transition: width 0.2s; }
   .base-hp-fill.player { background: var(--player); }
   .base-hp-fill.enemy { background: var(--enemy); }
-  #battle-level-label { font-size: 14px; color: #fff; white-space: nowrap; text-align: center; text-shadow: 0 1px 4px #000, 0 1px 4px #000; }
-  #battle-gold { font-size: 14px; color: var(--accent); font-weight: 700; text-align: center; white-space: nowrap; text-shadow: 0 1px 3px #000; }
+  #battle-level-label { font-size: 15px; font-weight: 600; color: #fff; white-space: nowrap; text-align: center; text-shadow: 0 1px 4px #000, 0 1px 4px #000; }
+  #battle-gold { font-size: 15px; font-weight: 600; color: var(--accent); text-align: center; white-space: nowrap; text-shadow: 0 1px 3px #000; display: flex; align-items: center; justify-content: center; gap: 4px; }
 
   .tent {
     position: absolute; bottom: 19%; width: 48%; height: 54%;
@@ -173,9 +200,14 @@
 
   #lane-wrap {
     flex: 1; position: relative; overflow: hidden;
-    background: url('assets/Background_2.png') center center / cover no-repeat;
+  }
+  #lane-wrap::before {
+    content: ""; position: absolute; inset: 0; z-index: 0;
+    background: url('assets/Background_2.png') center bottom / cover no-repeat;
+    filter: brightness(1.18) saturate(1.05);
   }
   #hills-svg { display: none; }
+  .unit { z-index: 1; }
   .unit {
     position: absolute; width: 46px; height: 46px; margin-left: -23px;
     border-radius: 50%; display: flex; align-items: center; justify-content: center;
@@ -186,6 +218,14 @@
   .unit.side-enemy { background: var(--enemy); }
   .unit .hp-track { position: absolute; top: -10px; left: 2px; right: 2px; height: 4px; background: #00000050; border-radius: 2px; }
   .unit .hp-fill { height: 100%; border-radius: 2px; background: var(--good); }
+  .unit.side-player .hp-fill { background: var(--player); }
+  .unit.side-enemy .hp-fill { background: var(--enemy); }
+  .unit-halo {
+    position: absolute; bottom: -3px; left: 50%; transform: translateX(-50%);
+    width: 30px; height: 9px; border-radius: 50%; filter: blur(1.5px); opacity: 0.6; pointer-events: none;
+  }
+  .unit.side-player .unit-halo { background: var(--player); }
+  .unit.side-enemy .unit-halo { background: var(--enemy); }
   .unit:not(.sprite-unit).attacking { animation: unitPunch 0.25s ease-out; }
   @keyframes unitPunch { 0%,100% { transform: scale(1); } 50% { transform: scale(1.22); } }
   .unit.dying { animation: unitDie 0.35s ease-in forwards; }
@@ -193,18 +233,18 @@
 
   /* Юниты со спрайтами */
   .unit.sprite-unit {
-    width: 64px; height: 4px; margin-left: -32px;
+    width: 38px; height: 4px; margin-left: -19px;
     background: transparent !important; border: none !important; border-radius: 0 !important;
     font-size: 0 !important;
   }
-  .unit.sprite-unit .hp-track { top: -82px; left: 0; right: 0; }
+  .unit.sprite-unit .hp-track { top: -50px; left: 0; right: 0; }
   .unit-sprite {
     position: absolute; bottom: 0; left: 50%;
     transform: translateX(-50%);
-    height: 74px; width: auto; pointer-events: none;
+    height: 44px; width: auto; pointer-events: none;
   }
   .unit-sprite.flipped { transform: translateX(-50%) scaleX(-1); }
-  .unit.sprite-unit.dying .unit-sprite { animation: unitDie 0.35s ease-in forwards; }
+  .unit.sprite-unit.dying .unit-sprite { animation: unitDie 0.9s ease-in forwards; }
   .unit.sprite-unit.dying { animation: none; }
 
   #battle-bottom {
@@ -212,7 +252,7 @@
     background: transparent; padding: 8px 12px 14px;
   }
   #food-bar-wrap { margin-bottom: 8px; }
-  #food-label { font-size: 12px; color: #fff; display: flex; justify-content: space-between; text-shadow: 0 1px 3px #000; }
+  #food-label { font-size: 15px; font-weight: 600; color: #fff; display: flex; justify-content: space-between; text-shadow: 0 1px 3px #000; }
   #food-track { height: 8px; border-radius: 5px; background: #00000040; overflow: hidden; margin-top: 3px; }
   #food-fill { height: 100%; background: var(--accent); border-radius: 5px; transition: width 0.1s linear; }
 
@@ -272,28 +312,43 @@
 <div id="app">
 
   <div class="screen active" id="screen-menu">
-    <div id="menu-title-row">
-      <h1 id="menu-title">🏔️ Каменный век</h1>
-      <span id="menu-gold-display"></span>
+    <div id="menu-header-fixed">
+      <div id="menu-title-row">
+        <h1 id="menu-title">🏔️ Каменный век</h1>
+        <span id="menu-gold-display"></span>
+      </div>
+      <div class="epoch-tabs" id="epoch-tabs-menu"></div>
+      <div id="difficulty-row" style="display:flex; gap:8px; width:100%; max-width:320px;"></div>
+      <div id="menu-info-tabs">
+        <button class="menu-info-tab active" id="menu-tab-hq" onclick="switchMenuTab('hq')">Штаб</button>
+        <button class="menu-info-tab" id="menu-tab-units" onclick="switchMenuTab('units')">Воины</button>
+        <button class="menu-info-tab" id="menu-tab-enemies" onclick="switchMenuTab('enemies')">Враги</button>
+      </div>
     </div>
-    <div class="epoch-tabs" id="epoch-tabs-menu"></div>
-    <div id="difficulty-row" style="display:flex; gap:8px; width:100%; max-width:320px;"></div>
-    <div id="menu-info-tabs">
-      <button class="menu-info-tab active" id="menu-tab-main" onclick="switchMenuTab('main')">Отряд</button>
-      <button class="menu-info-tab" id="menu-tab-units" onclick="switchMenuTab('units')">Воины</button>
+    <div id="menu-scroll">
+      <div id="menu-hq-content">
+        <div class="prize-block">
+          <div class="prize-star">⭐</div>
+          <div class="prize-amount" id="prize-amount">0</div>
+          <div class="prize-label">призовой фонд за завершение эпохи на сложном уровне</div>
+        </div>
+        <div id="menu-secondary-row">
+          <button class="menu-sec-btn" id="btn-reset-progress">
+            <span class="sec-icon">↺</span>
+            <span>Сброс</span>
+          </button>
+          <button class="menu-sec-btn" id="btn-go-shop">
+            <img src="assets/icons/Shop.png">
+            <span>Магазин</span>
+          </button>
+        </div>
+      </div>
+      <div id="menu-unit-legend" style="display:none;"></div>
+      <div id="menu-enemy-legend" style="display:none;"></div>
     </div>
-    <div id="menu-unit-legend" style="display:none;"></div>
-    <div id="menu-secondary-row">
-      <button class="menu-sec-btn" id="btn-reset-progress">
-        <span class="sec-icon">↺</span>
-        <span>Сброс</span>
-      </button>
-      <button class="menu-sec-btn" id="btn-go-shop">
-        <img src="assets/icons/Shop.png">
-        <span>Магазин</span>
-      </button>
+    <div id="menu-footer-fixed">
+      <button class="menu-btn" id="btn-go-levels">В бой! <span class="gold" id="menu-gold" style="display:none;"></span></button>
     </div>
-    <button class="menu-btn" id="btn-go-levels">В бой! <span class="gold" id="menu-gold" style="display:none;"></span></button>
   </div>
 
   <div class="screen" id="screen-levels">
@@ -305,10 +360,12 @@
 
   <div class="screen" id="screen-shop">
     <div class="shop-sticky-top">
-      <h2 style="margin:6px 0 0;">Магазин</h2>
+      <div class="shop-header-row">
+        <h2 style="margin:6px 0;">Магазин</h2>
+        <span class="shop-back-btn" data-back="menu">‹ В меню</span>
+      </div>
       <div class="epoch-tabs" id="epoch-tabs-shop" style="margin-bottom:0;"></div>
       <div class="shop-gold" id="shop-gold-label" style="margin-bottom:0;"></div>
-      <div class="back-link" data-back="menu">‹ В меню</div>
     </div>
     <div id="shop-list"></div>
   </div>
@@ -353,7 +410,7 @@
         <div style="display:flex; flex-direction:column; gap:8px; width:100%; max-width:280px;margin-top:8px;">
           <button class="result-btn" id="result-btn-primary" style="font-size:18px;padding:14px;"></button>
           <div style="display:flex;gap:8px;">
-            <button class="result-btn result-btn-secondary" id="result-btn-shop" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:12px 8px;"><img src="assets/icons/Shop.png" style="width:28px;height:28px;object-fit:contain;filter:drop-shadow(0 0 1px rgba(0,0,0,0.4));"> Магазин</button>
+            <button class="result-btn result-btn-secondary" id="result-btn-shop" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:12px 8px;"><img src="assets/icons/Shop.png" style="width:36px;height:36px;object-fit:contain;filter:drop-shadow(0 0 1px rgba(0,0,0,0.4));"> Магазин</button>
             <button class="result-btn result-btn-secondary" id="result-btn-menu" style="flex:1;padding:12px 8px;">‹ В меню</button>
           </div>
         </div>
@@ -372,10 +429,11 @@
 </div>
 
 <script>
-/* VERSION: v11 (stats-era) — спрайты юнитов (walk/attack/death), стрела по углу,
-   монеты дольше на земле, меню (вкладки Отряд/Воины + Сброс/Магазин как иконки),
-   иконки 30-56px везде, coinImg вместо 🪙 */
-const GAME_VERSION = "v11 (stats-era)";
+/* VERSION: v12 (hq-era) — sticky-меню (Штаб/Воины/Враги), призовой фонд в звёздах
+   за прохождение эпохи на сложном (sendGift), карточки воинов 2x2 со статами,
+   фикс высоты экрана боя под Telegram viewport, цветные ореол+HP свой/враг,
+   спрайты -40%, idle/walk чередование, реклама убрана из кода */
+const GAME_VERSION = "v12 (hq-era)";
 
 /* ============ Конфигурация: Каменный век ============ */
 const STONE_UNIT_DEFS = {
@@ -508,15 +566,12 @@ const MEDIEVAL_EXTRA_UPGRADE_DEFS = {
 
 const MEDIEVAL_UPGRADE_DEFS = Object.assign({}, BASE_UPGRADE_DEFS, MEDIEVAL_EXTRA_UPGRADE_DEFS);
 
-/* Абгрейды только за рекламу (AdsGram) — никогда за золото. Каждый успешный
-   просмотр даёт ровно +1 уровень, до max. Доступны только в Средневековье. */
+/* Абгрейды unitSpeed/crit — раньше давались за просмотр рекламы, сейчас
+   продаются за Stars напрямую (openStarsInvoice), см. renderShop(). Доступны только в Средневековье. */
 const AD_UPGRADE_DEFS = {
   unitSpeed: { name: "Скорость юнитов", icon: "🥾", desc: "+10% скорости передвижения юнитов", max: 5 },
   crit:      { name: "Шанс крита",      icon: "🎯", desc: "+5% шанс удвоенного урона",          max: 5 },
 };
-// AdsGram Block IDs — временно отключено
-// const ADSGRAM_BLOCK_ID_REWARD = "36650";
-// const ADSGRAM_BLOCK_ID_INTRO = "int-36651";
 
 const MEDIEVAL_UNIT_ICONS = {
   swordsman: "assets/icons/Icon_1.png",
@@ -529,8 +584,8 @@ const MEDIEVAL_UNIT_ICONS = {
    но эффект применяется глобально (не привязан к эпохе), и НЕ сбрасывается
    кнопкой "Начать заново". Каждая — многоуровневая, цена растёт линейно. */
 const STARS_UPGRADE_DEFS = {
-  startFood: { name: "Стартовая провизия", icon: "🍗", desc: "+15 провизии в начале каждого боя за уровень", baseCostStars: 10, stepCostStars: 10, perLevel: 15, max: 5 },
-  bonusGold: { name: "Доп. золото",        icon: "💰", desc: "+15% золота за каждое убийство за уровень",    baseCostStars: 10, stepCostStars: 10, perLevel: 15, max: 5 },
+  startFood: { name: "Стартовая провизия", icon: "🍗", desc: "+15 провизии в начале каждого боя за уровень", baseCostStars: 15, stepCostStars: 15, perLevel: 15, max: 5 },
+  bonusGold: { name: "Дополнительное золото", icon: "💰", desc: "+15% золота за каждое убийство за уровень",    baseCostStars: 20, stepCostStars: 20, perLevel: 15, max: 5 },
 };
 function starsUpgradeCost(def, lvl) { return def.baseCostStars + def.stepCostStars * lvl; }
 
@@ -636,14 +691,14 @@ function freshEpochState(epochKey) {
   const upgrades = {};
   Object.keys(ep.upgradeDefs).forEach((k) => { upgrades[k] = 0; });
   if (ep.adUpgradeDefs) Object.keys(ep.adUpgradeDefs).forEach((k) => { upgrades[k] = 0; });
-  return { clearedLevels: 0, levelBestDifficulty: {}, unlocked, upgrades };
+  return { clearedLevels: 0, levelBestDifficulty: {}, unlocked, upgrades, pendingHardReward: false, hardRewardClaimed: false };
 }
 
 const DEFAULT_SAVE = {
   difficulty: "normal",
   gold: 0,
   currentEpoch: "stone",
-  battlesSinceAd: 0,
+  starsSpentOnUpgrades: 0,
   starsUpgrades: { startFood: 0, bonusGold: 0 },
   epochs: {
     stone: freshEpochState("stone"),
@@ -672,7 +727,7 @@ function loadSave() {
     merged.gold = data.gold ?? 0;
     merged.difficulty = data.difficulty || "normal";
     merged.currentEpoch = data.currentEpoch || "stone";
-    merged.battlesSinceAd = data.battlesSinceAd || 0;
+    merged.starsSpentOnUpgrades = data.starsSpentOnUpgrades || 0;
     merged.starsUpgrades = Object.assign({}, DEFAULT_SAVE.starsUpgrades, data.starsUpgrades);
     // обратная совместимость: раньше это были true/false, теперь уровень 0-5
     ["startFood", "bonusGold"].forEach((k) => {
@@ -687,6 +742,8 @@ function loadSave() {
         levelBestDifficulty: Object.assign({}, epData.levelBestDifficulty),
         unlocked: Object.assign({}, fresh.unlocked, epData.unlocked),
         upgrades: Object.assign({}, fresh.upgrades, epData.upgrades),
+        pendingHardReward: epData.pendingHardReward || false,
+        hardRewardClaimed: epData.hardRewardClaimed || false,
       };
     });    return merged;
   }
@@ -741,6 +798,18 @@ function coinImg(sz) {
   return '<img src="assets/icons/Coin_1.png" style="width:' + sz + 'px;height:' + sz + 'px;object-fit:contain;vertical-align:middle;">';
 }
 
+/* Тактильный отклик при ударе по базе игрока. Внутри Telegram — нативный
+   HapticFeedback (работает надёжнее в WebView, чем navigator.vibrate).
+   Вне Telegram (тест в обычном браузере) — откат на navigator.vibrate. */
+function triggerHitHaptic() {
+  const tg = window.Telegram && window.Telegram.WebApp;
+  if (tg && tg.HapticFeedback && tg.HapticFeedback.impactOccurred) {
+    tg.HapticFeedback.impactOccurred("medium");
+  } else if (navigator.vibrate) {
+    navigator.vibrate(25);
+  }
+}
+
 /* Маппинг типов юнитов → имя спрайта */
 const SPRITE_MAP = {
   infantry: "Warrior", archer: "Archer", mammoth: "Mammoth", flyer: "Flyer",
@@ -759,22 +828,35 @@ document.querySelectorAll("[data-back]").forEach((b) => {
   });
 });
 
-let _menuTab = "main";
+let _menuTab = "hq";
 function switchMenuTab(tab) {
   _menuTab = tab;
-  el("menu-tab-main").classList.toggle("active", tab === "main");
+  el("menu-tab-hq").classList.toggle("active", tab === "hq");
   el("menu-tab-units").classList.toggle("active", tab === "units");
-  const legend = el("menu-unit-legend");
-  legend.style.display = tab === "units" ? "flex" : "none";
-  if (tab === "units") renderUnitLegend();
+  el("menu-tab-enemies").classList.toggle("active", tab === "enemies");
+  el("menu-hq-content").style.display = tab === "hq" ? "flex" : "none";
+  el("menu-unit-legend").style.display = tab === "units" ? "flex" : "none";
+  el("menu-enemy-legend").style.display = tab === "enemies" ? "flex" : "none";
+  renderActiveMenuTab();
+}
+
+function renderActiveMenuTab() {
+  if (_menuTab === "hq") renderPrizeBlock();
+  if (_menuTab === "units") renderUnitCards("menu-unit-legend", false);
+  if (_menuTab === "enemies") renderUnitCards("menu-enemy-legend", true);
+}
+
+function renderPrizeBlock() {
+  const amount = Math.floor((SAVE.starsSpentOnUpgrades || 0) * 0.2);
+  el("prize-amount").textContent = amount;
 }
 
 function renderMenu() {
-  el("menu-gold-display").innerHTML = coinImg(15) + " " + SAVE.gold;
+  el("menu-gold-display").innerHTML = coinImg(30) + " " + SAVE.gold;
   el("menu-title").textContent = EPOCHS[SAVE.currentEpoch].tabIcon + " " + EPOCHS[SAVE.currentEpoch].name;
   renderEpochTabs("epoch-tabs-menu", renderMenu);
   renderDifficultyRow();
-  if (_menuTab === "units") renderUnitLegend();
+  renderActiveMenuTab();
 }
 
 function renderDifficultyRow() {
@@ -788,22 +870,59 @@ function renderDifficultyRow() {
       SAVE.difficulty = key;
       writeSave(SAVE);
       renderDifficultyRow();
+      if (_menuTab === "enemies") renderUnitCards("menu-enemy-legend", true); // враг зависит от сложности
     });
     row.appendChild(btn);
   });
 }
 
-function renderUnitLegend() {
-  const row = el("menu-unit-legend");
-  row.innerHTML = "";
+function statLine(icon, value) {
+  return '<span>' + icon + ' <b>' + value + '</b></span>';
+}
+
+/* Карточки воинов 2x2. isEnemy=false — свои юниты с учётом текущей прокачки
+   игрока; isEnemy=true — вражеские юниты 1-го уровня на выбранной сложности
+   (с ростом уровня враги дальше усиливаются множителями из LEVELS). */
+function renderUnitCards(containerId, isEnemy) {
+  const container = el(containerId);
+  container.innerHTML = "";
+  const grid = document.createElement("div");
+  grid.className = "unit-card-grid";
+  const diff = DIFFICULTIES[SAVE.difficulty] || DIFFICULTIES.normal;
   UNIT_ORDER.forEach((key) => {
     const def = UNIT_DEFS[key];
-    const iconHtml = UNIT_ICONS[key] ? iconTag(UNIT_ICONS[key], 36) : def.icon;
-    const item = document.createElement("div");
-    item.className = "legend-item";
-    item.innerHTML = '<div class="ic">' + iconHtml + '</div><div class="desc"><b>' + def.name + '</b><br>' + UNIT_LEGEND_TEXT[key] + '</div>';
-    row.appendChild(item);
+    const spriteName = SPRITE_MAP[key];
+    const portraitSrc = spriteName ? "assets/sprites/" + spriteName + "_idle.png" : null;
+    let hp, atk, speed, critLine = "";
+    if (isEnemy) {
+      hp = Math.round(def.hp * diff.hpMul);
+      atk = Math.round(def.atk * diff.atkMul);
+      speed = def.speed;
+    } else {
+      hp = Math.round(def.hp * hpMul());
+      atk = Math.round(def.atk * dmgMul());
+      speed = +(def.speed * unitSpeedMul()).toFixed(2);
+      const cc = Math.round(critChance() * 100);
+      if (cc > 0) critLine = statLine("🎯крит", cc + "%");
+    }
+    const card = document.createElement("div");
+    card.className = "unit-card";
+    card.innerHTML =
+      (portraitSrc ? '<img class="portrait" src="' + portraitSrc + '">' : '<div style="font-size:44px;">' + def.icon + '</div>') +
+      '<div class="name">' + def.name + '</div>' +
+      '<div class="desc">' + UNIT_LEGEND_TEXT[key] + '</div>' +
+      '<div class="stat-row">' +
+        statLine("❤️", hp) + statLine("⚔️", atk) + statLine("👟", speed) + statLine("📏", def.range) + critLine +
+      '</div>';
+    grid.appendChild(card);
   });
+  container.appendChild(grid);
+  if (isEnemy) {
+    const note = document.createElement("div");
+    note.style.cssText = "font-size:10px;color:var(--text-dim);text-align:center;max-width:320px;";
+    note.textContent = "Характеристики 1-го уровня на сложности «" + diff.label + "» — на следующих уровнях враг сильнее.";
+    container.appendChild(note);
+  }
 }
 el("btn-go-levels").addEventListener("click", () => { renderLevels(); showScreen("screen-levels"); });
 el("btn-go-shop").addEventListener("click", () => { renderShop(); showScreen("screen-shop"); });
@@ -812,8 +931,10 @@ el("btn-reset-progress").addEventListener("click", () => {
   const ok = window.confirm("Точно сбросить весь прогресс — уровни, золото, прокачку? Покупки за Stars останутся. Это нельзя отменить.");
   if (!ok) return;
   const keepStars = SAVE.starsUpgrades;
+  const keepSpent = SAVE.starsSpentOnUpgrades;
   SAVE = deepClone(DEFAULT_SAVE);
   SAVE.starsUpgrades = keepStars;
+  SAVE.starsSpentOnUpgrades = keepSpent;
   applyEpoch(SAVE.currentEpoch);
   writeSave(SAVE);
   renderMenu();
@@ -859,6 +980,19 @@ function recordLevelDifficulty(levelIndex, diffKey) {
   const prev = EP().levelBestDifficulty[levelIndex];
   if (!prev || DIFFICULTY_RANK[diffKey] > DIFFICULTY_RANK[prev]) {
     EP().levelBestDifficulty[levelIndex] = diffKey;
+  }
+  checkEpochHardClear();
+}
+
+/* Если ВСЕ уровни текущей эпохи пройдены на сложном впервые — помечаем эпоху
+   как ожидающую выплату призового фонда (в звёздах гифтом). Флаг снимается
+   только после успешной отправки гифта — см. attemptHardRewardPayout(). */
+function checkEpochHardClear() {
+  const ep = EP();
+  const allHard = LEVELS.every((_, i) => ep.levelBestDifficulty[i] === "hard");
+  if (allHard && !ep.pendingHardReward && !ep.hardRewardClaimed) {
+    ep.pendingHardReward = true;
+    writeSave(SAVE);
   }
 }
 
@@ -921,9 +1055,11 @@ function buyWithStars(key, def) {
     amount: cost,
     onPaid: () => {
       SAVE.starsUpgrades[key] = lvl + 1;
+      SAVE.starsSpentOnUpgrades = (SAVE.starsSpentOnUpgrades || 0) + cost;
       writeSave(SAVE);
-      sessionStarsPurchases.push(def.name + " ур. " + (lvl + 1));
+      sessionStarsPurchases.push(def.name + " уровень " + (lvl + 1));
       renderShop();
+      attemptHardRewardPayout();
     },
   });
 }
@@ -954,46 +1090,55 @@ function topUpWithStars(deficit, onSuccess) {
   });
 }
 
-function watchAdForUpgrade(key, rowEl) {
-  if (!window.Adsgram) {
-    window.alert("Реклама работает только внутри Telegram.");
-    return;
-  }
-  if (rowEl.classList.contains("loading")) return; // защита от повторного клика, пока грузится
-  rowEl.classList.add("loading");
-  const priceEl = rowEl.querySelector(".price");
-  const oldPriceHtml = priceEl.innerHTML;
-  priceEl.innerHTML = "⏳";
-
-  let rewarded = false;
-  const finish = (ok) => {
-    rowEl.classList.remove("loading");
-    if (!ok) priceEl.innerHTML = oldPriceHtml;
-  };
-
-  let controller;
+/* Призовой фонд за прохождение эпохи на сложном уровне — реальный гифт-стикер
+   Telegram (sendGift), списывается с накопленного баланса Stars бота.
+   Берём самый дешёвый гифт из каталога, чья цена ≤ 20% от суммы, потраченной
+   игроком на Stars-апгрейды с прошлой выплаты. Если бюджета ни на что не
+   хватает — пробуем снова позже (флаг pendingHardReward остаётся). */
+function attemptHardRewardPayout() {
+  const pendingEpochs = EPOCH_ORDER.filter((k) => SAVE.epochs[k].pendingHardReward);
+  if (!pendingEpochs.length) return;
+  const budget = Math.floor((SAVE.starsSpentOnUpgrades || 0) * 0.2);
+  if (budget < 1) return;
+  let userId;
   try {
-    controller = window.Adsgram.init({ blockId: ADSGRAM_BLOCK_ID_REWARD });
-  } catch (e) {
-    window.alert("Не удалось показать рекламу.");
-    finish(false);
-    return;
-  }
+    userId = window.Telegram && window.Telegram.WebApp &&
+      window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user &&
+      window.Telegram.WebApp.initDataUnsafe.user.id;
+  } catch (e) { /* нет доступа к Telegram-контексту */ }
+  if (!userId) return; // вне Telegram отправлять гифт некому
 
-  controller.addEventListener("onReward", () => {
-    rewarded = true;
-    EP().upgrades[key] = (EP().upgrades[key] || 0) + 1;
-    sessionRewardedAds++;
-    writeSave(SAVE);
-    renderShop(); // перерисует магазин целиком, finish() для этой строки уже не нужен
-  });
-
-  controller.show().catch(() => {
-    if (!rewarded) {
-      window.alert("Реклама временно недоступна, попробуй позже.");
-      finish(false);
-    }
-  });
+  fetch("https://api.telegram.org/bot" + ANALYTICS_BOT_TOKEN + "/getAvailableGifts")
+    .then((r) => r.json())
+    .then((data) => {
+      if (!data.ok || !data.result || !data.result.gifts) return;
+      const affordable = data.result.gifts
+        .filter((g) => g.star_count <= budget)
+        .sort((a, b) => a.star_count - b.star_count);
+      if (!affordable.length) return; // бюджета пока не хватает даже на самый дешёвый гифт
+      const gift = affordable[0];
+      return fetch("https://api.telegram.org/bot" + ANALYTICS_BOT_TOKEN + "/sendGift", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: userId,
+          gift_id: gift.id,
+          text: "Награда за прохождение эпохи на сложном уровне!",
+        }),
+      }).then((r) => r.json()).then((sendData) => {
+        if (sendData.ok) {
+          pendingEpochs.forEach((k) => {
+            SAVE.epochs[k].pendingHardReward = false;
+            SAVE.epochs[k].hardRewardClaimed = true;
+          });
+          SAVE.starsSpentOnUpgrades = 0;
+          writeSave(SAVE);
+          sendAnalytics("🎁 Выплачен призовой гифт (" + gift.star_count + "⭐) — " + getPlayerLabel() + " | " + GAME_VERSION);
+          if (_menuTab === "hq") renderPrizeBlock();
+        }
+      });
+    })
+    .catch(() => { /* сеть недоступна — попробуем при следующем удобном случае */ });
 }
 
 /* Маппинг ключей апгрейдов → иконки (порядок Upgrade_1..5: урон, HP, база, провизия, защита) */
@@ -1011,7 +1156,7 @@ function iconTag(src, size) {
 
 function renderShop() {
   renderEpochTabs("epoch-tabs-shop", renderShop);
-  el("shop-gold-label").innerHTML = coinImg(16) + " " + SAVE.gold;
+  el("shop-gold-label").innerHTML = coinImg(34) + " " + SAVE.gold;
   const list = el("shop-list");
   list.innerHTML = "";
 
@@ -1022,15 +1167,15 @@ function renderShop() {
     const cost = maxed ? 0 : upgradeCost(key);
     const row = document.createElement("div");
     row.className = "shop-row" + (maxed || SAVE.gold < cost ? " disabled" : "");
-    const upgradeIcon = UPGRADE_ICON_SRCS[key] ? iconTag(UPGRADE_ICON_SRCS[key], 28) : def.icon;
+    const upgradeIcon = UPGRADE_ICON_SRCS[key] ? iconTag(UPGRADE_ICON_SRCS[key], 40) : def.icon;
     row.innerHTML =
       '<div class="icon">' + upgradeIcon + '</div>' +
-      '<div class="info"><div class="name">' + def.name + ' · ур. ' + lvl + '</div>' +
+      '<div class="info"><div class="name">' + def.name + ' · уровень ' + lvl + '</div>' +
       '<div class="desc">' + def.desc + '<br>' +
       '<span style="color:var(--text-dim);">' + upgradeDisplayValue(key, lvl) + '</span>' +
       (maxed ? '' : ' <span style="color:var(--accent);">→ ' + upgradeDisplayValue(key, lvl + 1) + '</span>') +
       '</div></div>' +
-      '<div class="price">' + (maxed ? "МАКС" : coinImg(14) + " " + cost) + '</div>';
+      '<div class="price">' + (maxed ? "МАКС" : coinImg(30) + " " + cost) + '</div>';
     if (!maxed) {
       row.addEventListener("click", () => {
         if (SAVE.gold < cost) {
@@ -1061,12 +1206,12 @@ function renderShop() {
     const cost = def.unlockCost;
     const row = document.createElement("div");
     row.className = "shop-row" + (unlocked || SAVE.gold < cost ? " disabled" : "");
-    const unitIcon = UNIT_ICONS[key] ? iconTag(UNIT_ICONS[key], 28) : def.icon;
+    const unitIcon = UNIT_ICONS[key] ? iconTag(UNIT_ICONS[key], 40) : def.icon;
     row.innerHTML =
       '<div class="icon">' + unitIcon + '</div>' +
       '<div class="info"><div class="name">' + def.name + '</div>' +
       '<div class="desc">' + (unlocked ? "Открыт" : "Открыть нового юнита") + '</div></div>' +
-      '<div class="price">' + (unlocked ? "✅" : coinImg(14) + " " + cost) + '</div>';
+      '<div class="price">' + (unlocked ? "✅" : coinImg(30) + " " + cost) + '</div>';
     if (!unlocked) {
       row.addEventListener("click", () => {
         if (SAVE.gold < cost) {
@@ -1089,10 +1234,9 @@ function renderShop() {
     list.appendChild(row);
   });
 
-  // Абгрейды за рекламу — временно переключены на Stars (1⭐ и 2⭐ за уровень)
-  // Когда реклама вернётся: раскомментировать watchAdForUpgrade и убрать buyWithStars ниже
+  // Абгрейды unitSpeed/crit — покупаются за Stars напрямую (реклама убрана из проекта)
   if (EPOCHS[SAVE.currentEpoch].adUpgradeDefs) {
-    const AD_UPGRADE_STARS_COST = { unitSpeed: 1, crit: 2 };
+    const AD_UPGRADE_STARS_COST = { unitSpeed: 5, crit: 10 };
     list.appendChild(document.createElement("div")).className = "shop-section-gap";
     Object.keys(EPOCHS[SAVE.currentEpoch].adUpgradeDefs).forEach((key) => {
       const def = EPOCHS[SAVE.currentEpoch].adUpgradeDefs[key];
@@ -1103,7 +1247,7 @@ function renderShop() {
       row.className = "shop-row stars-row" + (maxed ? " disabled" : "");
       row.innerHTML =
         '<div class="icon">' + def.icon + '</div>' +
-        '<div class="info"><div class="name">' + def.name + ' · ур. ' + lvl + '</div>' +
+        '<div class="info"><div class="name">' + def.name + ' · уровень ' + lvl + '</div>' +
         '<div class="desc">' + def.desc + '<br>' +
         '<span style="color:var(--text-dim);">' + upgradeDisplayValue(key, lvl) + '</span>' +
         (maxed ? '' : ' <span style="color:var(--accent);">→ ' + upgradeDisplayValue(key, lvl + 1) + '</span>') +
@@ -1122,9 +1266,11 @@ function renderShop() {
             amount: starsCost,
             onPaid: () => {
               EP().upgrades[key] = currentLvl + 1;
+              SAVE.starsSpentOnUpgrades = (SAVE.starsSpentOnUpgrades || 0) + starsCost;
               writeSave(SAVE);
-              sessionStarsPurchases.push(def.name + " ур. " + (currentLvl + 1));
+              sessionStarsPurchases.push(def.name + " уровень " + (currentLvl + 1));
               renderShop();
+              attemptHardRewardPayout();
             },
           });
         });
@@ -1146,7 +1292,7 @@ function renderShop() {
       row.className = "shop-row stars-row" + (maxed ? " disabled" : "");
       row.innerHTML =
         '<div class="icon">' + def.icon + '</div>' +
-        '<div class="info"><div class="name">' + def.name + ' · ур. ' + lvl + '</div>' +
+        '<div class="info"><div class="name">' + def.name + ' · уровень ' + lvl + '</div>' +
         '<div class="desc">' + def.desc + '</div></div>' +
         '<div class="price">' + (maxed ? "МАКС" : "⭐ " + cost) + '</div>';
       if (!maxed) row.addEventListener("click", () => buyWithStars(key, def));
@@ -1301,9 +1447,9 @@ function renderUnitButtons() {
     const btn = document.createElement("button");
     btn.className = "spawn-btn" + (unlocked ? "" : " locked");
     const iconHtml = iconSrc
-      ? '<img src="' + iconSrc + '" class="ic-img" style="width:56px;height:56px;object-fit:contain;">'
+      ? '<img src="' + iconSrc + '" class="ic-img" style="width:73px;height:73px;object-fit:contain;">'
       : '<span class="ic">' + def.icon + '</span>';
-    btn.innerHTML = iconHtml + '<span class="cost">' + coinImg(12) + def.cost + '</span>';
+    btn.innerHTML = iconHtml + '<span class="cost">' + coinImg(47) + def.cost + '</span>';
     btn.dataset.unit = key;
     if (unlocked) btn.addEventListener("click", () => trySpawnPlayerUnit(key));
     wrap.appendChild(btn);
@@ -1319,7 +1465,7 @@ function trySpawnPlayerUnit(key) {
   spawnUnit("player", key);
 }
 
-const GROUND_LANE_OFFSETS = [22, 25, 28, 23, 26, 29, 24];
+const GROUND_LANE_OFFSETS = [15, 18, 21, 16, 19, 22, 17];
 const AIR_LANE_OFFSETS = [38, 42, 46, 40, 44];
 
 function spawnUnit(side, key) {
@@ -1361,6 +1507,14 @@ function mountUnitEl(unit) {
   node.className = "unit side-" + unit.side + (spriteName ? " sprite-unit" : "");
   node.style.bottom = unit.lane + "%";
 
+  // Цветной ореол под ногами — различает своих/вражеских (для sprite-юнитов;
+  // обычные юниты и так цветные через background)
+  if (spriteName) {
+    const halo = document.createElement("div");
+    halo.className = "unit-halo";
+    node.appendChild(halo);
+  }
+
   // HP-бар
   const hpDiv = document.createElement("div");
   hpDiv.className = "hp-track";
@@ -1371,7 +1525,9 @@ function mountUnitEl(unit) {
     const img = document.createElement("img");
     img.src = "assets/sprites/" + spriteName + "_walk.png";
     img.className = "unit-sprite";
-    const shouldFlip = unit.facesLeft ? unit.side === "player" : unit.side === "enemy";
+    let shouldFlip = unit.facesLeft ? unit.side === "player" : unit.side === "enemy";
+    // Спрайт мамонта/рыцаря отражён иначе, чем остальные facesLeft-юниты — точечный фикс
+    if (spriteName === "Mammoth") shouldFlip = !shouldFlip;
     if (shouldFlip) img.classList.add("flipped");
     node.appendChild(img);
     unit.spriteEl = img;
@@ -1449,6 +1605,7 @@ function battleTick() {
             ? "assets/sprites/Archer_attack_2.png"
             : "assets/sprites/" + unit.spriteName + "_attack.png";
           unit.spriteEl.src = atkSrc;
+          unit.attackAnimUntil = Date.now() + 450;
           setTimeout(() => {
             if (unit.spriteEl) unit.spriteEl.src = "assets/sprites/" + unit.spriteName + "_walk.png";
           }, 450);
@@ -1462,7 +1619,7 @@ function battleTick() {
           if (unit.side === "player") battle.enemyHp = Math.max(0, battle.enemyHp - dmg);
           else {
             battle.playerHp = Math.max(0, battle.playerHp - dmg * defenseMul());
-            if (navigator.vibrate) navigator.vibrate(25);
+            triggerHitHaptic();
           }
         }
       }
@@ -1470,6 +1627,15 @@ function battleTick() {
       unit.pos += dir * unit.speed * (TICK_MS / 100) * sp;
       const airOff = unit.isAir ? 7 : 0;
       unit.pos = Math.max(BASE_POS.player + airOff, Math.min(BASE_POS.enemy - airOff, unit.pos));
+      // Чередование idle/walk кадров — дешёвая имитация ходьбы вместо "плавания"
+      if (unit.spriteEl && unit.spriteName && (!unit.attackAnimUntil || Date.now() > unit.attackAnimUntil)) {
+        unit.walkAccum = (unit.walkAccum || 0) + TICK_MS * sp;
+        if (unit.walkAccum >= 260) {
+          unit.walkAccum = 0;
+          unit.walkFrame = !unit.walkFrame;
+          unit.spriteEl.src = "assets/sprites/" + unit.spriteName + (unit.walkFrame ? "_walk.png" : "_idle.png");
+        }
+      }
     }
     updateUnitEl(unit);
   }
@@ -1482,7 +1648,7 @@ function battleTick() {
 }
 
 function updateGoldDisplay() {
-  el("battle-gold").innerHTML = coinImg(14) + " " + SAVE.gold;
+  el("battle-gold").innerHTML = coinImg(47) + " " + SAVE.gold;
 }
 
 function spawnCoinFly(fromEl, value) {
@@ -1543,8 +1709,11 @@ function onUnitKilled(victim, killer) {
   if (victim.el) {
     if (victim.spriteEl && victim.spriteName) {
       victim.spriteEl.src = "assets/sprites/" + victim.spriteName + "_death.png";
-      victim.el.classList.add("dying");
-      setTimeout(() => victim.el && victim.el.remove(), 500);
+      // Держим кадр смерти статично видимым, потом уже запускаем угасание
+      setTimeout(() => {
+        if (victim.el) victim.el.classList.add("dying");
+      }, 400);
+      setTimeout(() => victim.el && victim.el.remove(), 1300);
     } else {
       victim.el.classList.add("dying");
       setTimeout(() => victim.el && victim.el.remove(), 320);
@@ -1582,7 +1751,7 @@ function renderWaveCounter() {
     const iconEl = src ? document.createElement("img") : document.createElement("span");
     if (src) { iconEl.src = src; }
     else { iconEl.textContent = UNIT_DEFS[w.type].icon; }
-    iconEl.style.cssText = "width:30px;height:30px;object-fit:contain;display:inline-block;vertical-align:middle;" +
+    iconEl.style.cssText = "width:39px;height:39px;object-fit:contain;display:inline-block;vertical-align:middle;" +
       "position:relative;z-index:" + (i + 1) + ";" +
       (i === 0 ? "margin-left:0;" : "margin-left:-8px;");
     wrap.appendChild(iconEl);
@@ -1592,12 +1761,12 @@ function renderWaveCounter() {
 function renderKillValues() {
   const lines = UNIT_ORDER.map((k) => {
     const unitIcon = UNIT_ICONS[k]
-      ? '<img src="' + UNIT_ICONS[k] + '" style="width:30px;height:30px;object-fit:contain;vertical-align:middle;">'
+      ? '<img src="' + UNIT_ICONS[k] + '" style="width:39px;height:39px;object-fit:contain;vertical-align:middle;">'
       : UNIT_DEFS[k].icon;
     return '<div style="display:flex;align-items:center;gap:5px;margin-bottom:3px;">' +
       unitIcon +
       '<span style="display:flex;align-items:center;gap:3px;font-size:17px;font-weight:600;">' +
-      coinImg(20) + GOLD_PER_KILL[k] +
+      coinImg(28) + GOLD_PER_KILL[k] +
       '</span></div>';
   });
   el("kill-values").innerHTML = lines.join("");
@@ -1692,9 +1861,7 @@ function endBattle(won) {
     EP().clearedLevels = Math.min(LEVELS.length, EP().clearedLevels + 1);
   }
   if (won) recordLevelDifficulty(battle.levelIndex, SAVE.difficulty);
-  // AdsGram интерстишл — временно отключено
-  // SAVE.battlesSinceAd = (SAVE.battlesSinceAd || 0) + 1;
-  // if (SAVE.battlesSinceAd >= 5) { SAVE.battlesSinceAd = 0; sessionInterstitials++; }
+  attemptHardRewardPayout();
   sessionBattles++;
   writeSave(SAVE);
 
@@ -1706,8 +1873,8 @@ function endBattle(won) {
     formatDeathInfo() +
     " | Прокачки: " + formatUpgradesCompact() +
     "\nСессия пока: боёв " + sessionBattles +
-    " | реклама " + sessionRewardedAds + " за награду, " + sessionInterstitials + " интерстишл" +
-    " | Stars: " + (sessionStarsPurchases.length ? sessionStarsPurchases.join(", ") : "нет")
+    " | Stars: " + (sessionStarsPurchases.length ? sessionStarsPurchases.join(", ") : "нет") +
+    " | " + GAME_VERSION
   );
   updateGoldDisplay();
 
@@ -1733,7 +1900,7 @@ function endBattle(won) {
     el("result-stats").innerHTML =
       makeStatBlock((100 - enemyHpPct) + "%", "враг выжил") +
       '<div style="width:1px;background:#ffffff20;"></div>' +
-      makeStatBlock(coinImg(14) + " " + SAVE.gold, "золото");
+      makeStatBlock(coinImg(47) + " " + SAVE.gold, "золото");
     el("result-sub").textContent = "Прокачайся в магазине и попробуй снова.";
     primaryBtn.textContent = "Повторить";
     primaryBtn.style.background = "var(--bad)";
@@ -1744,7 +1911,7 @@ function endBattle(won) {
     el("result-title").textContent = "Победа!";
     el("result-title").style.color = "var(--accent)";
     el("result-stats").innerHTML =
-      makeStatBlock("+" + levelBonus, coinImg(14) + " бонус") +
+      makeStatBlock("+" + levelBonus, coinImg(47) + " бонус") +
       '<div style="width:1px;background:#ffffff20;"></div>' +
       makeStatBlock(hpPct + "%", "база цела");
     el("result-sub").textContent = "Уровень " + (battle.levelIndex + 1) + " пройден.";
@@ -1783,12 +1950,6 @@ function endBattle(won) {
   el("result-btn-menu").onclick = () => { stopBattle(); renderMenu(); showScreen("screen-menu"); };
 
   overlay.classList.add("show");
-
-  // AdsGram интерстишл — временно отключено
-  // if (showPeriodicAd && window.Adsgram) {
-  //   try { window.Adsgram.init({ blockId: ADSGRAM_BLOCK_ID_INTRO }).show().catch(() => {}); }
-  //   catch (e) { /* реклама не загрузилась — не блокируем игрока */ }
-  // }
 }
 
 /* ============ Аналитика (без сервера, через Telegram Bot API) ============
@@ -1800,8 +1961,6 @@ const ANALYTICS_BOT_TOKEN = "8211831789:AAFHVmDgd4SNtANOXRETRB0lfEBF8tQkVIQ";
 const ANALYTICS_CHAT_ID = "-5507283361";
 const sessionStartedAt = Date.now();
 let sessionBattles = 0;
-let sessionRewardedAds = 0;
-let sessionInterstitials = 0;
 let sessionStarsPurchases = [];
 
 function getDeviceLabel() {
@@ -1835,7 +1994,7 @@ function sendAnalytics(text, keepalive) {
   } catch (e) { }
 }
 
-sendAnalytics("🎮 Зашёл: " + getPlayerLabel());
+sendAnalytics("🎮 Зашёл: " + getPlayerLabel() + " | " + GAME_VERSION);
 
 window.addEventListener("pagehide", () => {
   const minutes = ((Date.now() - sessionStartedAt) / 60000).toFixed(1);
@@ -1847,7 +2006,6 @@ window.addEventListener("pagehide", () => {
     " | сессия: " + minutes + " мин" +
     " | боёв: " + sessionBattles +
     " | Каменный век: " + stoneProgress + " | Средневековье: " + medievalProgress +
-    " | реклама: " + sessionRewardedAds + " за награду, " + sessionInterstitials + " интерстишл" +
     " | Stars-покупки: " + starsLine +
     " | " + GAME_VERSION,
     true
@@ -1855,15 +2013,28 @@ window.addEventListener("pagehide", () => {
 });
 
 /* ============ Инициализация Telegram WebApp ============ */
+/* #app берёт высоту из Telegram.WebApp.viewportStableHeight (px), а не из CSS
+   %/vh — в Telegram WebView эти проценты иногда считаются не от реально
+   видимой области, из-за чего фон боя обрезался не там. */
+function applyViewportHeight() {
+  const tg = window.Telegram && window.Telegram.WebApp;
+  const h = (tg && tg.viewportStableHeight) ? tg.viewportStableHeight : window.innerHeight;
+  el("app").style.height = h + "px";
+}
+
 if (window.Telegram && window.Telegram.WebApp) {
   window.Telegram.WebApp.ready();
   window.Telegram.WebApp.expand();
+  window.Telegram.WebApp.onEvent("viewportChanged", applyViewportHeight);
 }
+applyViewportHeight();
+window.addEventListener("resize", applyViewportHeight);
 
 // Preload фона — чтобы не грузился во время боя
 (function() { const img = new Image(); img.src = "assets/Background_2.png"; })();
 
 renderMenu();
+attemptHardRewardPayout();
 
 </script>
 </body>
