@@ -63,7 +63,6 @@
   }
   #menu-hq-content { flex: 1; min-height: 320px; }
   #menu-unit-legend { flex: 1; min-height: 320px; }
-  .legend-center-wrap { flex: 1; width: 100%; display: flex; align-items: center; justify-content: center; }
   .menu-hq-spacer { flex-shrink: 0; }
   /* Призовой фонд (вкладка Штаб) — без фоновой панели, просто крупный текст по центру */
   .prize-block {
@@ -98,7 +97,7 @@
   }
   .unit-card .portrait { width: 68px; height: 68px; object-fit: contain; }
   .unit-card .name { font-size: 13px; font-weight: 700; }
-  .unit-card .desc { font-size: 10px; color: var(--text-dim); line-height: 1.25; min-height: 26px; }
+  .unit-card .desc { font-size: 10px; color: var(--text-dim); line-height: 1.25; min-height: 38px; }
   .unit-card .stat-row {
     display: flex; flex-wrap: nowrap; gap: 0 4px; justify-content: center;
     font-size: 9.5px; color: var(--text); margin-top: 2px; border-top: 1px solid #ffffff14; padding-top: 5px; width: 100%;
@@ -108,7 +107,7 @@
   .unit-card .stat-row b { color: var(--accent); font-weight: 700; }
   .stat-legend-grid {
     display: grid; grid-template-columns: 1fr 1fr; gap: 4px 8px; width: 100%; max-width: 240px;
-    font-size: 12px; color: var(--text-dim); padding: 0;
+    font-size: 12px; color: var(--text-dim); padding: 0; margin: 0 auto; text-align: center;
   }
 
   #screen-levels { padding: 16px; gap: 10px; align-items: center; }
@@ -189,6 +188,7 @@
   .tent {
     position: absolute; bottom: 27%; width: 48%; height: 54%;
     min-width: 120px; max-width: 280px; pointer-events: none;
+    z-index: 73;
   }
   .tent.player { left: -22%; }
   .tent.enemy { right: -22%; transform: scaleX(-1); }
@@ -202,7 +202,7 @@
 
   .coin-fly {
     position: absolute; display: flex; align-items: center; gap: 3px;
-    pointer-events: none; z-index: 50;
+    pointer-events: none; z-index: 110;
   }
   .coin-fly img { width: 26px; height: 26px; object-fit: contain; }
   .coin-fly .coin-value { font-size: 11px; color: var(--accent); font-weight: 700; text-shadow: 0 1px 2px #000; }
@@ -249,8 +249,8 @@
   .unit.sprite-unit .hp-track { top: -50px; left: 0; right: 0; }
   /* Мамонт/рыцарь и птеродактиль/дракон крупнее базового спрайта — наездник
      на них иначе выглядит слишком мелким рядом с пехотой/лучником */
-  .unit.sprite-of-Mammoth .unit-sprite { height: 59px; }
-  .unit.sprite-of-Mammoth .hp-track { top: -67px; }
+  .unit.sprite-of-Mammoth .unit-sprite { height: 65px; }
+  .unit.sprite-of-Mammoth .hp-track { top: -74px; }
   .unit.sprite-of-Flyer .unit-sprite { height: 51px; }
   .unit.sprite-of-Flyer .hp-track { top: -58px; }
   .unit-sprite {
@@ -287,7 +287,7 @@
   #unit-buttons { display: flex; gap: 6px; }
   .spawn-btn {
     flex: 1; border: 2px solid rgba(255,255,255,0.35); border-radius: 10px;
-    background: transparent; color: var(--text);
+    background: rgba(255,255,255,0.05); color: var(--text);
     padding: 4px 4px 3px; font-size: 13px; display: flex; flex-direction: column; align-items: center; gap: 0px;
     cursor: pointer;
   }
@@ -457,13 +457,12 @@
 </div>
 
 <script>
-/* VERSION: v14 (recalib-era) — фон боя дозумлен + панель призыва сильно ужата
-   (дорога больше не перекрыта), лычки юнитов пересчитаны под новую зону дороги,
-   фикс гонки в анимации смерти (attack-revert больше не затирает death-кадр),
-   смерть длится дольше, стрелы — выше точка вылета + надёжнее анимация,
-   мамонт +35%/птеродактиль +15% размера, легенда статов по центру вкладки,
-   вкладка Враги убрана */
-const GAME_VERSION = "v14 (recalib-era)";
+/* VERSION: v15 (depth-era) — z-порядок юнитов/палаток по глубине (кто ниже
+   на экране — тот выше по z-index), стрелы: высота вылета уменьшена (было
+   слишком высоко), птеродактили летают выше, мамонт ещё +10%, заливка кнопок
+   призыва полупрозрачным цветом, легенда статов honest-centered, карточки
+   воинов — фикс выравнивания через min-height описания вместо догадок по тексту */
+const GAME_VERSION = "v15 (depth-era)";
 
 /* ============ Конфигурация: Каменный век ============ */
 const STONE_UNIT_DEFS = {
@@ -934,14 +933,19 @@ function renderUnitCards(containerId) {
   });
   container.appendChild(grid);
 
-  const legendWrap = document.createElement("div");
-  legendWrap.className = "legend-center-wrap";
+  const spacerTop = document.createElement("div");
+  spacerTop.style.flexGrow = "1";
+  container.appendChild(spacerTop);
+
   const legend = document.createElement("div");
   legend.className = "stat-legend-grid";
   legend.innerHTML =
     '<div>❤️ Здоровье</div><div>⚔️ Урон</div><div>👟 Скорость</div><div>📏 Дальность</div>';
-  legendWrap.appendChild(legend);
-  container.appendChild(legendWrap);
+  container.appendChild(legend);
+
+  const spacerBottom = document.createElement("div");
+  spacerBottom.style.flexGrow = "1";
+  container.appendChild(spacerBottom);
 }
 el("btn-go-levels").addEventListener("click", () => { renderLevels(); showScreen("screen-levels"); });
 el("btn-go-shop").addEventListener("click", () => { renderShop(); showScreen("screen-shop"); });
@@ -1414,21 +1418,34 @@ function spawnProjectile(attacker, target) {
   const wrapW = laneWrap.clientWidth || 390;
   const wrapH = laneWrap.clientHeight || 700;
 
-  const BOW_HEIGHT_OFF = 8; // визуальная высота лука/рук над "lane" юнита, в % от lane-wrap
-  const startX = attacker.pos / 100 * wrapW;
-  const startY = wrapH - (attacker.lane + BOW_HEIGHT_OFF) / 100 * wrapH; // px от верха
+  // Центр силуэта юнита (примерная середина по высоте, не точка у ног)
+  const CENTER_HEIGHT_OFF = 5; // % от lane-wrap
+  const centerX = attacker.pos / 100 * wrapW;
+  const centerY = wrapH - (attacker.lane + CENTER_HEIGHT_OFF) / 100 * wrapH;
 
   let endX, endY;
   if (target && target.el) {
     endX = target.pos / 100 * wrapW;
-    endY = wrapH - (target.lane + BOW_HEIGHT_OFF) / 100 * wrapH;
+    endY = wrapH - (target.lane + CENTER_HEIGHT_OFF) / 100 * wrapH;
   } else {
     const tPos = attacker.side === "player" ? BASE_POS.enemy + 2 : BASE_POS.player - 2;
     endX = tPos / 100 * wrapW;
-    endY = startY;
+    endY = centerY;
   }
 
+  // Не знаем точно, где на спрайте находится лук/рука — вместо гадания
+  // стрела летит по траектории от центра силуэта к цели, но становится
+  // видимой не в самом центре, а с небольшим смещением в сторону цели
+  // (всё ещё в пределах силуэта юнита, ~14px).
+  const dx = endX - centerX, dy = endY - centerY;
+  const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+  const VISIBLE_OFFSET_PX = 14;
+  const startX = centerX + (dx / dist) * VISIBLE_OFFSET_PX;
+  const startY = centerY + (dy / dist) * VISIBLE_OFFSET_PX;
+
   const angle = Math.atan2(endY - startY, endX - startX) * 180 / Math.PI;
+  const startLeftPct = startX / wrapW * 100;
+  const startBottomPct = (wrapH - startY) / wrapH * 100;
   const endLeftPct = endX / wrapW * 100;
   const endBottomPct = (wrapH - endY) / wrapH * 100;
 
@@ -1437,11 +1454,11 @@ function spawnProjectile(attacker, target) {
   arrow.style.cssText = [
     "position:absolute",
     "pointer-events:none",
-    "z-index:15",
+    "z-index:110",
     "width:40px",
     "height:auto",
-    "left:" + attacker.pos + "%",
-    "bottom:" + (attacker.lane + BOW_HEIGHT_OFF) + "%",
+    "left:" + startLeftPct + "%",
+    "bottom:" + startBottomPct + "%",
     "margin-left:-20px",
     "transform:rotate(" + angle + "deg)",
     "transform-origin:0% 50%",
@@ -1491,7 +1508,7 @@ function trySpawnPlayerUnit(key) {
 }
 
 const GROUND_LANE_OFFSETS = [24, 27, 30, 25, 28, 31, 26];
-const AIR_LANE_OFFSETS = [38, 42, 46, 40, 44];
+const AIR_LANE_OFFSETS = [46, 50, 54, 48, 52];
 
 function spawnUnit(side, key) {
   const def = UNIT_DEFS[key];
@@ -1531,6 +1548,9 @@ function mountUnitEl(unit) {
   const node = document.createElement("div");
   node.className = "unit side-" + unit.side + (spriteName ? " sprite-unit sprite-of-" + spriteName : "");
   node.style.bottom = unit.lane + "%";
+  // Глубина: юнит, чьи ноги ближе к низу экрана (меньше lane), должен
+  // перекрывать того, кто дальше/выше — та же логика для палатки (z:73, см. CSS)
+  node.style.zIndex = Math.round(100 - unit.lane);
 
   // Цветной ореол под ногами — различает своих/вражеских (для наземных
   // sprite-юнитов; у летающих под ногами пустота, ореол смотрелся странно)
