@@ -102,11 +102,13 @@
   #battle-gold { font-size: 13px; color: var(--accent); font-weight: 700; text-align: center; white-space: nowrap; }
 
   .tent {
-    position: absolute; bottom: 0; width: 13%; height: 22%;
-    min-width: 64px; max-width: 110px; pointer-events: none;
+    position: absolute; bottom: 0; width: 18%; height: 28%;
+    min-width: 80px; max-width: 140px; pointer-events: none;
   }
   .tent.player { left: 0; }
-  .tent.enemy { right: 0; }
+  .tent.enemy { right: 0; transform: scaleX(-1); }
+  .tent img { width: 100%; height: 100%; object-fit: contain; object-position: bottom; }
+  /* tent svg оставляем для совместимости — не удаляем */
   .tent svg { width: 100%; height: 100%; }
   .tent .tent-cracks-1, .tent .tent-cracks-2, .tent .tent-ruins { opacity: 0; }
   .tent.dmg1 .tent-cracks-1 { opacity: 1; }
@@ -121,9 +123,9 @@
 
   #lane-wrap {
     flex: 1; position: relative; overflow: hidden;
-    background: linear-gradient(180deg, #2a3a5c 0%, #4a5a7a 30%, #5a6a5a 42%, #3a3a2a 100%);
+    background: url('assets/Background_2.png') center center / cover no-repeat;
   }
-  #hills-svg { position: absolute; top: 0; left: 0; width: 100%; height: 18%; pointer-events: none; }
+  #hills-svg { display: none; }
   .unit {
     position: absolute; width: 46px; height: 46px; margin-left: -23px;
     border-radius: 50%; display: flex; align-items: center; justify-content: center;
@@ -274,10 +276,8 @@
 </div>
 
 <script>
-/* VERSION: v4 (stats-era) — дозакупка монет за Stars при нехватке,
-   диагностика Stars-платежей (логируем любой статус колбэка),
-   рефакторинг openStarsInvoice в общую функцию */
-const GAME_VERSION = "v4 (stats-era)";
+/* VERSION: v5 (stats-era) — фон, база (3 состояния), иконки юнитов на кнопках */
+const GAME_VERSION = "v5 (stats-era)";
 
 /* ============ Конфигурация: Каменный век ============ */
 const STONE_UNIT_DEFS = {
@@ -332,6 +332,13 @@ const STONE_LEGEND = {
   archer:   "бьёт землю и воздух, но хрупкий",
   mammoth:  "танк: много HP, держит линию",
   flyer:    "летает, неуязвим для пехоты и танка — достаёт только лучник",
+};
+
+const STONE_UNIT_ICONS = {
+  infantry: "assets/icons/Icon_1.png",
+  archer:   "assets/icons/Icon_2.png",
+  mammoth:  "assets/icons/Icon_3.png",
+  flyer:    "assets/icons/Icon_4.png",
 };
 
 /* ============ Конфигурация: Средневековье ============ */
@@ -413,6 +420,13 @@ const AD_UPGRADE_DEFS = {
 // const ADSGRAM_BLOCK_ID_REWARD = "36650";
 // const ADSGRAM_BLOCK_ID_INTRO = "int-36651";
 
+const MEDIEVAL_UNIT_ICONS = {
+  swordsman: "assets/icons/Icon_1.png",
+  crossbow:  "assets/icons/Icon_2.png",
+  knight:    "assets/icons/Icon_3.png",
+  dragon:    "assets/icons/Icon_4.png",
+};
+
 /* Покупки за Telegram Stars — доступны только во вкладке Средневековья,
    но эффект применяется глобально (не привязан к эпохе), и НЕ сбрасывается
    кнопкой "Начать заново". Каждая — многоуровневая, цена растёт линейно. */
@@ -439,12 +453,16 @@ const EPOCHS = {
     unitDefs: STONE_UNIT_DEFS, unitOrder: STONE_UNIT_ORDER, levels: STONE_LEVELS,
     goldPerKill: STONE_GOLD_PER_KILL, upgradeDefs: BASE_UPGRADE_DEFS, legend: STONE_LEGEND,
     baseSvg: tentSvg,
+    baseSrc: "assets/base/Base",
+    unitIcons: STONE_UNIT_ICONS,
   },
   medieval: {
     name: "Средневековье", tabIcon: "⚔️",
     unitDefs: MEDIEVAL_UNIT_DEFS, unitOrder: MEDIEVAL_UNIT_ORDER, levels: MEDIEVAL_LEVELS,
     goldPerKill: MEDIEVAL_GOLD_PER_KILL, upgradeDefs: MEDIEVAL_UPGRADE_DEFS, legend: MEDIEVAL_LEGEND,
-    baseSvg: castleSvg, adUpgradeDefs: AD_UPGRADE_DEFS,
+    baseSvg: castleSvg, baseSrc: "assets/base/Base",
+    unitIcons: MEDIEVAL_UNIT_ICONS,
+    adUpgradeDefs: AD_UPGRADE_DEFS,
   },
 };
 const EPOCH_ORDER = ["stone", "medieval"];
@@ -488,7 +506,7 @@ function castleSvg(main, dark) {
 /* Текущие активные конфиги — переключаются applyEpoch() при смене вкладки эпохи.
    Это намеренно `let`, а не `const`: вся остальная логика обращается к ним
    по этим именам и не должна знать про эпохи напрямую. */
-let UNIT_DEFS, UNIT_ORDER, LEVELS, GOLD_PER_KILL, UPGRADE_DEFS, UNIT_LEGEND_TEXT, baseSvgFn;
+let UNIT_DEFS, UNIT_ORDER, LEVELS, GOLD_PER_KILL, UPGRADE_DEFS, UNIT_LEGEND_TEXT, baseSvgFn, baseSrc, UNIT_ICONS;
 
 function applyEpoch(key) {
   const ep = EPOCHS[key];
@@ -499,6 +517,8 @@ function applyEpoch(key) {
   UPGRADE_DEFS = ep.upgradeDefs;
   UNIT_LEGEND_TEXT = ep.legend;
   baseSvgFn = ep.baseSvg;
+  baseSrc = ep.baseSrc || "assets/base/Base";
+  UNIT_ICONS = ep.unitIcons || {};
 }
 
 /* ============ Сохранение ============ */
@@ -1038,8 +1058,8 @@ function startBattle(levelIndex) {
     deathElapsed: null,
     deathWave: null,
   };
-  el("tent-player").innerHTML = baseSvgFn(SIDE_COLORS.player.main, SIDE_COLORS.player.dark);
-  el("tent-enemy").innerHTML = baseSvgFn(SIDE_COLORS.enemy.main, SIDE_COLORS.enemy.dark);
+  el("tent-player").innerHTML = '<img src="' + baseSrc + '_intact.png" class="base-img">';
+  el("tent-enemy").innerHTML = '<img src="' + baseSrc + '_intact.png" class="base-img">';
   el("tent-player").className = "tent player";
   el("tent-enemy").className = "tent enemy";
   el("btn-speed").textContent = "1x";
@@ -1082,9 +1102,13 @@ function renderUnitButtons() {
   UNIT_ORDER.forEach((key) => {
     const def = UNIT_DEFS[key];
     const unlocked = EP().unlocked[key];
+    const iconSrc = UNIT_ICONS[key];
     const btn = document.createElement("button");
     btn.className = "spawn-btn" + (unlocked ? "" : " locked");
-    btn.innerHTML = '<span class="ic">' + def.icon + '</span><span class="cost">' + def.cost + '</span>';
+    const iconHtml = iconSrc
+      ? '<img src="' + iconSrc + '" class="ic-img" style="width:36px;height:36px;object-fit:contain;">'
+      : '<span class="ic">' + def.icon + '</span>';
+    btn.innerHTML = iconHtml + '<span class="cost">' + def.cost + '</span>';
     btn.dataset.unit = key;
     if (unlocked) btn.addEventListener("click", () => trySpawnPlayerUnit(key));
     wrap.appendChild(btn);
@@ -1290,10 +1314,18 @@ function renderBattleHp() {
 }
 
 function updateTentDamage(tentEl, hpFraction) {
-  tentEl.classList.remove("dmg1", "dmg2", "ruined");
-  if (hpFraction <= 0) tentEl.classList.add("ruined");
-  else if (hpFraction <= 0.35) tentEl.classList.add("dmg2");
-  else if (hpFraction <= 0.7) tentEl.classList.add("dmg1");
+  const img = tentEl.querySelector("img.base-img");
+  if (img) {
+    if (hpFraction <= 0) img.src = baseSrc + "_destroyed.png";
+    else if (hpFraction <= 0.35) img.src = baseSrc + "_cracked.png";
+    else img.src = baseSrc + "_intact.png";
+  } else {
+    // fallback для SVG (если img нет)
+    tentEl.classList.remove("dmg1", "dmg2", "ruined");
+    if (hpFraction <= 0) tentEl.classList.add("ruined");
+    else if (hpFraction <= 0.35) tentEl.classList.add("dmg2");
+    else if (hpFraction <= 0.7) tentEl.classList.add("dmg1");
+  }
 }
 function renderFood() {
   el("food-num").textContent = Math.floor(battle.food);
