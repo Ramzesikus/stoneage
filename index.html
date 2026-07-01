@@ -208,10 +208,7 @@
     width: 38px; height: auto; object-fit: contain;
     transition: left 0.35s linear, opacity 0.35s ease-in;
   }
-  /* PNG defringe helper */
-  img.ic-img, img.base-img, .projectile, .spawn-btn img {
-    filter: drop-shadow(0 0 1px rgba(0,0,0,0.45));
-  }
+  /* PNG defringe helper — убрано, т.к. drop-shadow усиливает видимость белого контура */
   #battle-result.show { display: flex; }
   #battle-result h2 { font-size: 26px; margin: 0; }
   #battle-result p { color: var(--text-dim); margin: 0; font-size: 13px; }
