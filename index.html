@@ -96,7 +96,7 @@
     display: flex; flex-direction: column; align-items: center; gap: 3px; text-align: center;
   }
   .unit-card .portrait { width: 68px; height: 68px; object-fit: contain; }
-  .unit-card .name { font-size: 13px; font-weight: 700; }
+  .unit-card .name { font-size: 13px; font-weight: 700; line-height: 1.2; min-height: 32px; display: flex; align-items: center; }
   .unit-card .desc { font-size: 10px; color: var(--text-dim); line-height: 1.25; min-height: 38px; }
   .unit-card .stat-row {
     display: flex; flex-wrap: nowrap; gap: 0 4px; justify-content: center;
@@ -457,10 +457,11 @@
 </div>
 
 <script>
-/* VERSION: v15.1 (depth-era) — фикс легенды статов на вкладке Воины: колонки
-   сетки теперь по ширине контента (auto), а не фиксированные 1fr — раньше
-   из-за этого блок технически стоял по центру, но выглядел "разъехавшимся" */
-const GAME_VERSION = "v15.1 (depth-era)";
+/* VERSION: v15.2 (depth-era) — фикс выравнивания карточек воинов: причина
+   была не в описании (.desc), а в названии (.name) — "Птеродактиль с
+   наездником" длиннее и переносится на 2 строки, "Мамонт с наездником" на
+   1, высота под название не резервировалась. Добавлен min-height:32px */
+const GAME_VERSION = "v15.2 (depth-era)";
 
 /* ============ Конфигурация: Каменный век ============ */
 const STONE_UNIT_DEFS = {
