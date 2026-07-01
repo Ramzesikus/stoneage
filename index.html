@@ -58,12 +58,13 @@
     background: transparent; color: var(--text-dim); font-size: 12px; cursor: pointer; text-align: center;
   }
   .menu-info-tab.active { background: var(--panel); color: var(--text); }
-  #menu-hq-content, #menu-unit-legend, #menu-enemy-legend {
+  #menu-hq-content, #menu-unit-legend {
     width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: 10px; align-items: center;
   }
-  /* Призовой фонд (вкладка Штаб) */
+  #menu-hq-content { flex: 1; min-height: 320px; }
+  .menu-hq-spacer { flex-shrink: 0; }
+  /* Призовой фонд (вкладка Штаб) — без фоновой панели, просто крупный текст по центру */
   .prize-block {
-    background: var(--panel); border-radius: 14px; padding: 18px 16px;
     display: flex; flex-direction: column; align-items: center; gap: 4px;
     text-align: center; width: 100%; max-width: 320px;
   }
@@ -97,10 +98,16 @@
   .unit-card .name { font-size: 13px; font-weight: 700; }
   .unit-card .desc { font-size: 10px; color: var(--text-dim); line-height: 1.25; min-height: 26px; }
   .unit-card .stat-row {
-    display: flex; flex-wrap: wrap; gap: 3px 7px; justify-content: center;
-    font-size: 10.5px; color: var(--text); margin-top: 2px; border-top: 1px solid #ffffff14; padding-top: 5px; width: 100%;
+    display: flex; flex-wrap: nowrap; gap: 0 4px; justify-content: center;
+    font-size: 9.5px; color: var(--text); margin-top: 2px; border-top: 1px solid #ffffff14; padding-top: 5px; width: 100%;
+    white-space: nowrap; overflow: hidden;
   }
+  .unit-card .stat-row span { flex-shrink: 0; }
   .unit-card .stat-row b { color: var(--accent); font-weight: 700; }
+  .stat-legend-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; width: 100%;
+    font-size: 12px; color: var(--text-dim); padding: 4px 4px 12px;
+  }
 
   #screen-levels { padding: 16px; gap: 10px; align-items: center; }
   #screen-levels h2 { margin: 6px 0 10px; }
@@ -111,11 +118,11 @@
   }
   .level-btn.locked { opacity: 0.35; cursor: default; }
   .level-btn.cleared { border-color: var(--good); }
-  .back-link { color: var(--text-dim); font-size: 14px; margin-top: 16px; cursor: pointer; }
+  .back-link { color: var(--accent); font-weight: 600; font-size: 14px; margin-top: 16px; cursor: pointer; }
 
   #screen-shop { padding: 16px; gap: 10px; overflow-y: auto; }
   .shop-header-row { display: flex; align-items: center; justify-content: space-between; width: 100%; max-width: 340px; margin: 0 auto; }
-  .shop-back-btn { color: var(--text-dim); font-size: 14px; cursor: pointer; padding: 6px 4px; }
+  .shop-back-btn { color: var(--accent); font-weight: 600; font-size: 14px; cursor: pointer; padding: 6px 4px; }
   #screen-shop h2 { margin: 6px 0; text-align: left; }
   .shop-gold { text-align: center; color: var(--accent); font-size: 20px; font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; gap: 6px; }
   .shop-row {
@@ -203,7 +210,7 @@
   }
   #lane-wrap::before {
     content: ""; position: absolute; inset: 0; z-index: 0;
-    background: url('assets/Background_2.png') center bottom / cover no-repeat;
+    background: url('assets/Background_2.png') center bottom / auto 120% no-repeat;
     filter: brightness(1.18) saturate(1.05);
   }
   #hills-svg { display: none; }
@@ -244,8 +251,21 @@
     height: 44px; width: auto; pointer-events: none;
   }
   .unit-sprite.flipped { transform: translateX(-50%) scaleX(-1); }
-  .unit.sprite-unit.dying .unit-sprite { animation: unitDie 0.9s ease-in forwards; }
-  .unit.sprite-unit.dying { animation: none; }
+  .unit.sprite-unit.dying .unit-sprite { animation: deathBlink 0.8s steps(1,end) forwards; }
+  .unit.sprite-unit.dying-fall .unit-sprite:not(.flipped) {
+    animation: deathBlink 0.8s steps(1,end) forwards, deathFallMove 0.8s ease-in forwards;
+  }
+  .unit.sprite-unit.dying-fall .unit-sprite.flipped {
+    animation: deathBlink 0.8s steps(1,end) forwards, deathFallMoveFlipped 0.8s ease-in forwards;
+  }
+  .unit.sprite-unit.dying, .unit.sprite-unit.dying-fall { animation: none; }
+  @keyframes deathBlink {
+    0%, 20%, 40%, 60% { opacity: 1; }
+    10%, 30%, 50% { opacity: 0.15; }
+    70%, 100% { opacity: 0; }
+  }
+  @keyframes deathFallMove { to { transform: translateX(-50%) translateY(70px); } }
+  @keyframes deathFallMoveFlipped { to { transform: translateX(-50%) scaleX(-1) translateY(70px); } }
 
   #battle-bottom {
     position: absolute; bottom: 0; left: 0; right: 0; z-index: 30;
@@ -260,7 +280,7 @@
   .spawn-btn {
     flex: 1; border: 2px solid rgba(255,255,255,0.35); border-radius: 12px;
     background: transparent; color: var(--text);
-    padding: 8px 4px 6px; font-size: 13px; display: flex; flex-direction: column; align-items: center; gap: 4px;
+    padding: 8px 4px 6px; font-size: 13px; display: flex; flex-direction: column; align-items: center; gap: 1px;
     cursor: pointer;
   }
   .spawn-btn .ic { font-size: 36px; }
@@ -322,16 +342,17 @@
       <div id="menu-info-tabs">
         <button class="menu-info-tab active" id="menu-tab-hq" onclick="switchMenuTab('hq')">Штаб</button>
         <button class="menu-info-tab" id="menu-tab-units" onclick="switchMenuTab('units')">Воины</button>
-        <button class="menu-info-tab" id="menu-tab-enemies" onclick="switchMenuTab('enemies')">Враги</button>
       </div>
     </div>
     <div id="menu-scroll">
       <div id="menu-hq-content">
+        <div class="menu-hq-spacer" style="flex-grow:3;"></div>
         <div class="prize-block">
           <div class="prize-star">⭐</div>
           <div class="prize-amount" id="prize-amount">0</div>
           <div class="prize-label">призовой фонд за завершение эпохи на сложном уровне</div>
         </div>
+        <div class="menu-hq-spacer" style="flex-grow:5;"></div>
         <div id="menu-secondary-row">
           <button class="menu-sec-btn" id="btn-reset-progress">
             <span class="sec-icon">↺</span>
@@ -344,7 +365,6 @@
         </div>
       </div>
       <div id="menu-unit-legend" style="display:none;"></div>
-      <div id="menu-enemy-legend" style="display:none;"></div>
     </div>
     <div id="menu-footer-fixed">
       <button class="menu-btn" id="btn-go-levels">В бой! <span class="gold" id="menu-gold" style="display:none;"></span></button>
@@ -406,7 +426,7 @@
         <div id="result-icon" style="font-size:52px;line-height:1;margin-bottom:4px;"></div>
         <h2 id="result-title" style="margin:0 0 4px;"></h2>
         <div id="result-stats" style="display:flex;gap:16px;margin:10px 0 4px;"></div>
-        <p id="result-sub" style="font-size:12px;"></p>
+        <p id="result-sub" style="font-size:13px;"></p>
         <div style="display:flex; flex-direction:column; gap:8px; width:100%; max-width:280px;margin-top:8px;">
           <button class="result-btn" id="result-btn-primary" style="font-size:18px;padding:14px;"></button>
           <div style="display:flex;gap:8px;">
@@ -429,11 +449,11 @@
 </div>
 
 <script>
-/* VERSION: v12 (hq-era) — sticky-меню (Штаб/Воины/Враги), призовой фонд в звёздах
-   за прохождение эпохи на сложном (sendGift), карточки воинов 2x2 со статами,
-   фикс высоты экрана боя под Telegram viewport, цветные ореол+HP свой/враг,
-   спрайты -40%, idle/walk чередование, реклама убрана из кода */
-const GAME_VERSION = "v12 (hq-era)";
+/* VERSION: v13 (polish-era) — фикс стрел (летят при каждой атаке, не только
+   при добивании), новая анимация смерти (мигание + падение летающих),
+   вкладка Враги убрана, легенда статов упрощена, единый цвет кнопок навигации,
+   лёгкая подрезка неба на фоне боя, фикс HTML-в-confirm() при докупке звёзд */
+const GAME_VERSION = "v13 (polish-era)";
 
 /* ============ Конфигурация: Каменный век ============ */
 const STONE_UNIT_DEFS = {
@@ -487,7 +507,7 @@ const STONE_LEGEND = {
   infantry: "ближний бой, дёшево, в больших количествах",
   archer:   "бьёт землю и воздух, но хрупкий",
   mammoth:  "танк: много HP, держит линию",
-  flyer:    "летает, неуязвим для пехоты и танка — достаёт только лучник",
+  flyer:    "летает — достаёт лучник или другой птеродактиль",
 };
 
 const STONE_UNIT_ICONS = {
@@ -549,7 +569,7 @@ const MEDIEVAL_LEGEND = {
   swordsman: "ближний бой, дёшево, в больших количествах",
   crossbow:  "бьёт землю и воздух, но хрупкий",
   knight:    "танк: много HP, держит линию",
-  dragon:    "летает, неуязвим для меченосца и рыцаря — достаёт только арбалетчик",
+  dragon:    "летает — достаёт арбалетчик или другой дракон",
 };
 
 /* ============ Прокачки: общие 4 + новые медиевальные ============ */
@@ -833,17 +853,14 @@ function switchMenuTab(tab) {
   _menuTab = tab;
   el("menu-tab-hq").classList.toggle("active", tab === "hq");
   el("menu-tab-units").classList.toggle("active", tab === "units");
-  el("menu-tab-enemies").classList.toggle("active", tab === "enemies");
   el("menu-hq-content").style.display = tab === "hq" ? "flex" : "none";
   el("menu-unit-legend").style.display = tab === "units" ? "flex" : "none";
-  el("menu-enemy-legend").style.display = tab === "enemies" ? "flex" : "none";
   renderActiveMenuTab();
 }
 
 function renderActiveMenuTab() {
   if (_menuTab === "hq") renderPrizeBlock();
-  if (_menuTab === "units") renderUnitCards("menu-unit-legend", false);
-  if (_menuTab === "enemies") renderUnitCards("menu-enemy-legend", true);
+  if (_menuTab === "units") renderUnitCards("menu-unit-legend");
 }
 
 function renderPrizeBlock() {
@@ -870,7 +887,6 @@ function renderDifficultyRow() {
       SAVE.difficulty = key;
       writeSave(SAVE);
       renderDifficultyRow();
-      if (_menuTab === "enemies") renderUnitCards("menu-enemy-legend", true); // враг зависит от сложности
     });
     row.appendChild(btn);
   });
@@ -880,31 +896,21 @@ function statLine(icon, value) {
   return '<span>' + icon + ' <b>' + value + '</b></span>';
 }
 
-/* Карточки воинов 2x2. isEnemy=false — свои юниты с учётом текущей прокачки
-   игрока; isEnemy=true — вражеские юниты 1-го уровня на выбранной сложности
-   (с ростом уровня враги дальше усиливаются множителями из LEVELS). */
-function renderUnitCards(containerId, isEnemy) {
+/* Карточки своих воинов 2x2, с учётом текущей прокачки игрока. */
+function renderUnitCards(containerId) {
   const container = el(containerId);
   container.innerHTML = "";
   const grid = document.createElement("div");
   grid.className = "unit-card-grid";
-  const diff = DIFFICULTIES[SAVE.difficulty] || DIFFICULTIES.normal;
   UNIT_ORDER.forEach((key) => {
     const def = UNIT_DEFS[key];
     const spriteName = SPRITE_MAP[key];
     const portraitSrc = spriteName ? "assets/sprites/" + spriteName + "_idle.png" : null;
-    let hp, atk, speed, critLine = "";
-    if (isEnemy) {
-      hp = Math.round(def.hp * diff.hpMul);
-      atk = Math.round(def.atk * diff.atkMul);
-      speed = def.speed;
-    } else {
-      hp = Math.round(def.hp * hpMul());
-      atk = Math.round(def.atk * dmgMul());
-      speed = +(def.speed * unitSpeedMul()).toFixed(2);
-      const cc = Math.round(critChance() * 100);
-      if (cc > 0) critLine = statLine("🎯крит", cc + "%");
-    }
+    const hp = Math.round(def.hp * hpMul());
+    const atk = Math.round(def.atk * dmgMul());
+    const speed = +(def.speed * unitSpeedMul()).toFixed(2);
+    const cc = Math.round(critChance() * 100);
+    const critLine = cc > 0 ? statLine("🎯крит", cc + "%") : "";
     const card = document.createElement("div");
     card.className = "unit-card";
     card.innerHTML =
@@ -917,12 +923,12 @@ function renderUnitCards(containerId, isEnemy) {
     grid.appendChild(card);
   });
   container.appendChild(grid);
-  if (isEnemy) {
-    const note = document.createElement("div");
-    note.style.cssText = "font-size:10px;color:var(--text-dim);text-align:center;max-width:320px;";
-    note.textContent = "Характеристики 1-го уровня на сложности «" + diff.label + "» — на следующих уровнях враг сильнее.";
-    container.appendChild(note);
-  }
+
+  const legend = document.createElement("div");
+  legend.className = "stat-legend-grid";
+  legend.innerHTML =
+    '<div>❤️ Здоровье</div><div>⚔️ Урон</div><div>👟 Скорость</div><div>📏 Дальность</div>';
+  container.appendChild(legend);
 }
 el("btn-go-levels").addEventListener("click", () => { renderLevels(); showScreen("screen-levels"); });
 el("btn-go-shop").addEventListener("click", () => { renderShop(); showScreen("screen-shop"); });
@@ -1071,7 +1077,7 @@ function topUpWithStars(deficit, onSuccess) {
   const stars = Math.ceil(deficit / STARS_TO_COINS_RATE);
   const coins = stars * STARS_TO_COINS_RATE;
   const ok = window.confirm(
-    "Не хватает " + coinImg(14) + " " + deficit + ".\n" +
+    "Не хватает 🪙 " + deficit + ".\n" +
     "Докупить " + coins + " монет за ⭐" + stars + "?"
   );
   if (!ok) return;
@@ -1167,7 +1173,7 @@ function renderShop() {
     const cost = maxed ? 0 : upgradeCost(key);
     const row = document.createElement("div");
     row.className = "shop-row" + (maxed || SAVE.gold < cost ? " disabled" : "");
-    const upgradeIcon = UPGRADE_ICON_SRCS[key] ? iconTag(UPGRADE_ICON_SRCS[key], 40) : def.icon;
+    const upgradeIcon = UPGRADE_ICON_SRCS[key] ? iconTag(UPGRADE_ICON_SRCS[key], 54) : def.icon;
     row.innerHTML =
       '<div class="icon">' + upgradeIcon + '</div>' +
       '<div class="info"><div class="name">' + def.name + ' · уровень ' + lvl + '</div>' +
@@ -1507,9 +1513,9 @@ function mountUnitEl(unit) {
   node.className = "unit side-" + unit.side + (spriteName ? " sprite-unit" : "");
   node.style.bottom = unit.lane + "%";
 
-  // Цветной ореол под ногами — различает своих/вражеских (для sprite-юнитов;
-  // обычные юниты и так цветные через background)
-  if (spriteName) {
+  // Цветной ореол под ногами — различает своих/вражеских (для наземных
+  // sprite-юнитов; у летающих под ногами пустота, ореол смотрелся странно)
+  if (spriteName && !unit.isAir) {
     const halo = document.createElement("div");
     halo.className = "unit-halo";
     node.appendChild(halo);
@@ -1612,6 +1618,9 @@ function battleTick() {
         }
         let dmg = unit.atk;
         if (unit.side === "player" && Math.random() < critChance()) dmg *= 2;
+        if (unit.categories && unit.categories.includes("ranged")) {
+          spawnProjectile(unit, target);
+        }
         if (target) {
           target.hp -= dmg;
           if (target.hp <= 0) onUnitKilled(target, unit);
@@ -1709,19 +1718,21 @@ function onUnitKilled(victim, killer) {
   if (victim.el) {
     if (victim.spriteEl && victim.spriteName) {
       victim.spriteEl.src = "assets/sprites/" + victim.spriteName + "_death.png";
-      // Держим кадр смерти статично видимым, потом уже запускаем угасание
-      setTimeout(() => {
-        if (victim.el) victim.el.classList.add("dying");
-      }, 400);
-      setTimeout(() => victim.el && victim.el.remove(), 1300);
+      if (victim.isAir) {
+        // Летающие — падают вниз, мигая, сразу без статичной паузы
+        victim.el.classList.add("dying-fall");
+        setTimeout(() => victim.el && victim.el.remove(), 900);
+      } else {
+        // Наземные — лежат статично (кадр death уже изображает лежащего), потом мигают
+        setTimeout(() => {
+          if (victim.el) victim.el.classList.add("dying");
+        }, 400);
+        setTimeout(() => victim.el && victim.el.remove(), 1200);
+      }
     } else {
       victim.el.classList.add("dying");
       setTimeout(() => victim.el && victim.el.remove(), 320);
     }
-  }
-  // Стрела лучника — спавним при смерти цели если это дальнобойная атака
-  if (killer.categories && killer.categories.includes("ranged")) {
-    spawnProjectile(killer, victim);
   }
   if (killer.side === "player") {
     const base = GOLD_PER_KILL[victim.type] || 2;
@@ -1886,8 +1897,8 @@ function endBattle(won) {
   // Блок статистики
   function makeStatBlock(val, label) {
     return '<div style="text-align:center;">' +
-      '<div style="font-size:20px;font-weight:700;color:var(--accent);">' + val + '</div>' +
-      '<div style="font-size:10px;color:var(--text-dim);">' + label + '</div>' +
+      '<div style="display:inline-flex;align-items:center;gap:4px;font-size:20px;font-weight:700;color:var(--accent);">' + val + '</div>' +
+      '<div style="font-size:13px;color:var(--text-dim);">' + label + '</div>' +
       '</div>';
   }
   const hpPct = Math.round((battle.playerHp / battle.playerHpMax) * 100);
