@@ -96,6 +96,10 @@
     display: flex; flex-direction: column; align-items: center; gap: 3px; text-align: center;
   }
   .unit-card .portrait { width: 68px; height: 68px; object-fit: contain; }
+  /* Те же пропорции, что уже откалиброваны для спрайтов в бою
+     (.unit.sprite-of-Mammoth/.Flyer .unit-sprite): 65/44 и 51/44 от базового */
+  .unit-card .portrait-lg { width: 100px; height: 100px; }
+  .unit-card .portrait-md { width: 79px; height: 79px; }
   .unit-card .name { font-size: 13px; font-weight: 700; line-height: 1.2; min-height: 32px; display: flex; align-items: center; }
   .unit-card .desc { font-size: 10px; color: var(--text-dim); line-height: 1.25; min-height: 38px; }
   .unit-card .stat-row {
@@ -159,9 +163,9 @@
   #wave-counter {
     position: absolute; top: 19%; right: 8px; z-index: 20;
     background: transparent; padding: 4px;
-    display: flex; gap: 3px; flex-wrap: wrap; justify-content: flex-end;
-    max-width: 160px;
     text-shadow: 0 1px 4px #000, 0 1px 4px #000;
+    /* display/flex-direction/gap/max-width задаются в JS (renderWaveCounter),
+       т.к. раскладка (число рядов, наложение) пересчитывается динамически */
   }
   #kill-values {
     position: absolute; top: 12%; left: 8px; z-index: 20;
@@ -286,14 +290,16 @@
 
   #unit-buttons { display: flex; gap: 6px; }
   .spawn-btn {
-    flex: 1; border: 2px solid rgba(255,255,255,0.35); border-radius: 10px;
-    background: rgba(255,255,255,0.05); color: var(--text);
+    flex: 1; border: 2px solid rgba(255,255,255,0.55); border-radius: 10px;
+    background: rgba(255,255,255,0.14); color: var(--text);
     padding: 4px 4px 3px; font-size: 13px; display: flex; flex-direction: column; align-items: center; gap: 0px;
     cursor: pointer;
   }
   .spawn-btn .ic { font-size: 36px; }
   .spawn-btn .cost { color: var(--accent); font-size: 11px; font-weight: 600; text-shadow: 0 1px 2px #000; }
-  .spawn-btn.disabled { opacity: 0.35; }
+  /* Не хватает провизии — раньше это была стандартная активная кнопка,
+     теперь наоборот: активная стала ярче, а эта заняла её прежний вид */
+  .spawn-btn.disabled { border-color: rgba(255,255,255,0.35); background: rgba(255,255,255,0.05); }
   .spawn-btn.locked { opacity: 0.25; }
 
   #battle-result {
@@ -457,11 +463,25 @@
 </div>
 
 <script>
-/* VERSION: v15.2 (depth-era) — фикс выравнивания карточек воинов: причина
-   была не в описании (.desc), а в названии (.name) — "Птеродактиль с
-   наездником" длиннее и переносится на 2 строки, "Мамонт с наездником" на
-   1, высота под название не резервировалась. Добавлен min-height:32px */
-const GAME_VERSION = "v15.2 (depth-era)";
+/* VERSION: v16 (depth-era) — правки по скриншотам:
+   1) Портреты Мамонта/Птеродактиля на вкладке "Воины" увеличены под те же
+      пропорции, что уже откалиброваны в бою (65/44 и 51/44 от базового).
+   2) Стрела лучника: убран искусственный сдвиг точки старта к цели и
+      плоское смещение 5% для всех типов — теперь центр силуэта считается
+      по РЕАЛЬНОЙ высоте спрайта конкретного юнита (SPRITE_HEIGHT_PX).
+   3) Кнопки призыва: активные/неактивные (по нехватке провизии) поменялись
+      контрастностью местами — активные стали заметно ярче.
+   4) Экран победы: иконка монеты в блоке "бонус" была в строке label
+      (13px), из-за чего 47px-картинка вылезала за пределы строки —
+      перенесена в строку val (та уже центрирована через inline-flex).
+   5) Блок предстоящих врагов переписан на JS-раскладку: до 2 рядов,
+      наложение иконок до ~28%, ряды не заходят левее середины экрана,
+      степень наложения и число рядов пересчитываются на каждый тик под
+      текущую длину очереди (не анимация, а перерасчёт состояния).
+   НЕ трогал в этой версии: разворот вражеского птеродактиля и его
+   уменьшение при смерти — обе гипотезы (PNG-исходник, размер источника)
+   пользователь снял на скриншоте, нужна дополнительная диагностика. */
+const GAME_VERSION = "v16 (depth-era)";
 
 /* ============ Конфигурация: Каменный век ============ */
 const STONE_UNIT_DEFS = {
@@ -838,6 +858,11 @@ function triggerHitHaptic() {
   }
 }
 
+/* Реальная высота спрайта в px — из CSS (.unit-sprite / .sprite-of-Mammoth /
+   .sprite-of-Flyer). Нужна стрелам, чтобы бить точно в центр силуэта КАЖДОГО
+   типа юнита, а не по одному плоскому проценту для всех. */
+const SPRITE_HEIGHT_PX = { default: 44, Mammoth: 65, Flyer: 51 };
+
 /* Маппинг типов юнитов → имя спрайта */
 const SPRITE_MAP = {
   infantry: "Warrior", archer: "Archer", mammoth: "Mammoth", flyer: "Flyer",
@@ -919,10 +944,11 @@ function renderUnitCards(containerId) {
     const speed = +(def.speed * unitSpeedMul()).toFixed(2);
     const cc = Math.round(critChance() * 100);
     const critLine = cc > 0 ? statLine("🎯крит", cc + "%") : "";
+    const portraitSizeClass = spriteName === "Mammoth" ? " portrait-lg" : spriteName === "Flyer" ? " portrait-md" : "";
     const card = document.createElement("div");
     card.className = "unit-card";
     card.innerHTML =
-      (portraitSrc ? '<img class="portrait" src="' + portraitSrc + '">' : '<div style="font-size:44px;">' + def.icon + '</div>') +
+      (portraitSrc ? '<img class="portrait' + portraitSizeClass + '" src="' + portraitSrc + '">' : '<div style="font-size:44px;">' + def.icon + '</div>') +
       '<div class="name">' + def.name + '</div>' +
       '<div class="desc">' + UNIT_LEGEND_TEXT[key] + '</div>' +
       '<div class="stat-row">' +
@@ -1412,36 +1438,35 @@ el("btn-pause").addEventListener("click", () => {
   }
 });
 
+/* Центр силуэта юнита по вертикали (в % от низа lane-wrap), с учётом
+   реальной высоты именно его спрайта — не плоское число для всех типов. */
+function spriteCenterOffsetPct(unit, wrapH) {
+  const heightPx = unit.spriteName ? (SPRITE_HEIGHT_PX[unit.spriteName] || SPRITE_HEIGHT_PX.default) : SPRITE_HEIGHT_PX.default;
+  return (heightPx / 2) / wrapH * 100;
+}
+
 function spawnProjectile(attacker, target) {
   const laneWrap = el("lane-wrap");
   const wrapW = laneWrap.clientWidth || 390;
   const wrapH = laneWrap.clientHeight || 700;
 
-  // Центр силуэта юнита (примерная середина по высоте, не точка у ног)
-  const CENTER_HEIGHT_OFF = 5; // % от lane-wrap
-  const centerX = attacker.pos / 100 * wrapW;
-  const centerY = wrapH - (attacker.lane + CENTER_HEIGHT_OFF) / 100 * wrapH;
+  const attackerOff = spriteCenterOffsetPct(attacker, wrapH);
+  const startX = attacker.pos / 100 * wrapW;
+  const startY = wrapH - (attacker.lane + attackerOff) / 100 * wrapH;
 
   let endX, endY;
   if (target && target.el) {
+    const targetOff = spriteCenterOffsetPct(target, wrapH);
     endX = target.pos / 100 * wrapW;
-    endY = wrapH - (target.lane + CENTER_HEIGHT_OFF) / 100 * wrapH;
+    endY = wrapH - (target.lane + targetOff) / 100 * wrapH;
   } else {
     const tPos = attacker.side === "player" ? BASE_POS.enemy + 2 : BASE_POS.player - 2;
     endX = tPos / 100 * wrapW;
-    endY = centerY;
+    endY = startY;
   }
 
-  // Не знаем точно, где на спрайте находится лук/рука — вместо гадания
-  // стрела летит по траектории от центра силуэта к цели, но становится
-  // видимой не в самом центре, а с небольшим смещением в сторону цели
-  // (всё ещё в пределах силуэта юнита, ~14px).
-  const dx = endX - centerX, dy = endY - centerY;
-  const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-  const VISIBLE_OFFSET_PX = 14;
-  const startX = centerX + (dx / dist) * VISIBLE_OFFSET_PX;
-  const startY = centerY + (dy / dist) * VISIBLE_OFFSET_PX;
-
+  // Стрела летит от центра силуэта атакующего к центру силуэта цели —
+  // без искусственного смещения точки старта (координаты уже точные).
   const angle = Math.atan2(endY - startY, endX - startX) * 180 / Math.PI;
   const startLeftPct = startX / wrapW * 100;
   const startBottomPct = (wrapH - startY) / wrapH * 100;
@@ -1782,29 +1807,91 @@ function onUnitKilled(victim, killer) {
   }
 }
 
+/* Раскладка блока предстоящих врагов — пересчитывается заново на каждый тик
+   под ТЕКУЩУЮ длину очереди, это не анимация, а просто функция состояния:
+   - максимум 2 ряда, каждый шириной не дальше середины экрана от правого края
+   - если очередь помещается в 1 ряд без наложения — наложения нет
+   - если не помещается — сначала растёт наложение (до ~28%), рядов всё ещё 1
+   - если не хватает даже при максимальном наложении — включается 2-й ряд
+     (оба ряда сразу на максимальном наложении)
+   - если не хватает и двух рядов на максимуме — остаток показывается "+N"
+   При уменьшении очереди всё происходит в обратном порядке: сначала
+   пропадает 2-й ряд, и только потом снижается наложение в 1-м. */
+const WAVE_ICON = 39;
+const WAVE_ROW_GAP = 4;
+const WAVE_OVERLAP_MAX = 0.28;
+
+function waveRowCapacity(overlapFrac, maxRowWidth) {
+  const step = WAVE_ICON * (1 - overlapFrac);
+  if (step <= 0) return 1;
+  return Math.max(1, Math.floor((maxRowWidth - WAVE_ICON) / step) + 1);
+}
+
+function computeWaveLayout(total, maxRowWidth) {
+  const cap1_0 = waveRowCapacity(0, maxRowWidth);
+  const cap1_max = waveRowCapacity(WAVE_OVERLAP_MAX, maxRowWidth);
+  const cap2_max = cap1_max * 2;
+
+  if (total <= cap1_0) return { rows: [{ count: total, overlap: 0 }], truncated: 0 };
+
+  if (total <= cap1_max) {
+    // ищем минимальное наложение, при котором весь total влезает в 1 ряд
+    let lo = 0, hi = WAVE_OVERLAP_MAX;
+    for (let i = 0; i < 12; i++) {
+      const mid = (lo + hi) / 2;
+      if (waveRowCapacity(mid, maxRowWidth) >= total) hi = mid; else lo = mid;
+    }
+    return { rows: [{ count: total, overlap: hi }], truncated: 0 };
+  }
+
+  const shown = Math.min(total, cap2_max);
+  const row1 = Math.min(shown, cap1_max);
+  const row2 = shown - row1;
+  const rows = [{ count: row1, overlap: WAVE_OVERLAP_MAX }];
+  if (row2 > 0) rows.push({ count: row2, overlap: WAVE_OVERLAP_MAX });
+  return { rows, truncated: total - shown };
+}
+
 function renderWaveCounter() {
   const wrap = el("wave-counter");
   if (!battle.waveQueue.length) { wrap.innerHTML = ""; return; }
   const reversed = battle.waveQueue.slice().reverse();
-  const maxShow = 9;
-  const shown = reversed.slice(0, maxShow);
+
+  const wrapW = el("lane-wrap").clientWidth || 390;
+  const maxRowWidth = wrapW / 2 - 8; // не левее середины экрана (минус правый паддинг блока)
+  const { rows, truncated } = computeWaveLayout(reversed.length, maxRowWidth);
+
   wrap.innerHTML = "";
-  if (reversed.length > maxShow) {
-    const more = document.createElement("span");
-    more.style.cssText = "font-size:12px;color:#fff;text-shadow:0 1px 4px #000;margin-right:2px;vertical-align:middle;line-height:30px;";
-    more.textContent = "+" + (reversed.length - maxShow);
+  wrap.style.display = "flex";
+  wrap.style.flexDirection = "column";
+  wrap.style.alignItems = "flex-end";
+  wrap.style.gap = WAVE_ROW_GAP + "px";
+  wrap.style.maxWidth = maxRowWidth + "px";
+
+  let consumed = 0;
+  rows.forEach((row) => {
+    const rowEl = document.createElement("div");
+    rowEl.style.cssText = "display:flex; justify-content:flex-end;";
+    reversed.slice(consumed, consumed + row.count).forEach((w, i) => {
+      const src = UNIT_ICONS[w.type];
+      const iconEl = src ? document.createElement("img") : document.createElement("span");
+      if (src) { iconEl.src = src; }
+      else { iconEl.textContent = UNIT_DEFS[w.type].icon; }
+      const marginLeft = i === 0 ? 0 : -Math.round(WAVE_ICON * row.overlap);
+      iconEl.style.cssText = "width:" + WAVE_ICON + "px;height:" + WAVE_ICON + "px;object-fit:contain;display:inline-block;" +
+        "position:relative;z-index:" + (i + 1) + ";margin-left:" + marginLeft + "px;";
+      rowEl.appendChild(iconEl);
+    });
+    consumed += row.count;
+    wrap.appendChild(rowEl);
+  });
+
+  if (truncated > 0) {
+    const more = document.createElement("div");
+    more.style.cssText = "font-size:12px;color:#fff;text-shadow:0 1px 4px #000;text-align:right;";
+    more.textContent = "+" + truncated;
     wrap.appendChild(more);
   }
-  shown.forEach((w, i) => {
-    const src = UNIT_ICONS[w.type];
-    const iconEl = src ? document.createElement("img") : document.createElement("span");
-    if (src) { iconEl.src = src; }
-    else { iconEl.textContent = UNIT_DEFS[w.type].icon; }
-    iconEl.style.cssText = "width:39px;height:39px;object-fit:contain;display:inline-block;vertical-align:middle;" +
-      "position:relative;z-index:" + (i + 1) + ";" +
-      (i === 0 ? "margin-left:0;" : "margin-left:-8px;");
-    wrap.appendChild(iconEl);
-  });
 }
 
 function renderKillValues() {
@@ -1960,7 +2047,7 @@ function endBattle(won) {
     el("result-title").textContent = "Победа!";
     el("result-title").style.color = "var(--accent)";
     el("result-stats").innerHTML =
-      makeStatBlock("+" + levelBonus, coinImg(47) + " бонус") +
+      makeStatBlock(coinImg(22) + " +" + levelBonus, "бонус") +
       '<div style="width:1px;background:#ffffff20;"></div>' +
       makeStatBlock(hpPct + "%", "база цела");
     el("result-sub").textContent = "Уровень " + (battle.levelIndex + 1) + " пройден.";
