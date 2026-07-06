@@ -96,10 +96,6 @@
     display: flex; flex-direction: column; align-items: center; gap: 3px; text-align: center;
   }
   .unit-card .portrait { width: 68px; height: 68px; object-fit: contain; }
-  /* Те же пропорции, что уже откалиброваны для спрайтов в бою
-     (.unit.sprite-of-Mammoth/.Flyer .unit-sprite): 65/44 и 51/44 от базового */
-  .unit-card .portrait-lg { width: 100px; height: 100px; }
-  .unit-card .portrait-md { width: 79px; height: 79px; }
   .unit-card .name { font-size: 13px; font-weight: 700; line-height: 1.2; min-height: 32px; display: flex; align-items: center; }
   .unit-card .desc { font-size: 10px; color: var(--text-dim); line-height: 1.25; min-height: 38px; }
   .unit-card .stat-row {
@@ -163,9 +159,9 @@
   #wave-counter {
     position: absolute; top: 19%; right: 8px; z-index: 20;
     background: transparent; padding: 4px;
+    display: flex; gap: 3px; flex-wrap: wrap; justify-content: flex-end;
+    max-width: 160px;
     text-shadow: 0 1px 4px #000, 0 1px 4px #000;
-    /* display/flex-direction/gap/max-width задаются в JS (renderWaveCounter),
-       т.к. раскладка (число рядов, наложение) пересчитывается динамически */
   }
   #kill-values {
     position: absolute; top: 12%; left: 8px; z-index: 20;
@@ -195,14 +191,8 @@
     z-index: 73;
   }
   .tent.player { left: -22%; }
-  .tent.enemy { right: -22%; transform: scaleX(-1); }
+  .tent.enemy { right: -22%; }
   .tent img { width: 100%; height: 100%; object-fit: contain; object-position: bottom; }
-  .tent svg { width: 100%; height: 100%; }
-  .tent .tent-cracks-1, .tent .tent-cracks-2, .tent .tent-ruins { opacity: 0; }
-  .tent.dmg1 .tent-cracks-1 { opacity: 1; }
-  .tent.dmg2 .tent-cracks-1, .tent.dmg2 .tent-cracks-2 { opacity: 1; }
-  .tent.ruined .tent-intact, .tent.ruined .tent-cracks-1, .tent.ruined .tent-cracks-2 { opacity: 0; }
-  .tent.ruined .tent-ruins { opacity: 1; }
 
   .coin-fly {
     position: absolute; display: flex; align-items: center; gap: 3px;
@@ -216,7 +206,8 @@
   }
   #lane-wrap::before {
     content: ""; position: absolute; inset: 0; z-index: 0;
-    background: url('assets/Background_2.png') center bottom / auto 135% no-repeat;
+    background-image: var(--fight-bg);
+    background-size: auto 135%; background-position: center bottom; background-repeat: no-repeat;
     filter: brightness(1.18) saturate(1.05);
   }
   #hills-svg { display: none; }
@@ -252,15 +243,17 @@
   }
   .unit.sprite-unit .hp-track { top: -50px; left: 0; right: 0; }
   /* Мамонт/рыцарь и птеродактиль/дракон крупнее базового спрайта — наездник
-     на них иначе выглядит слишком мелким рядом с пехотой/лучником */
-  .unit.sprite-of-Mammoth .unit-sprite { height: 65px; }
+     на них иначе выглядит слишком мелким рядом с пехотой/лучником. Сама
+     высота теперь ставится динамически в JS (SPRITE_RATIO × naturalHeight),
+     не статичным CSS-значением — см. STONEAGE_ASSET_PIPELINE.md, раздел 8:
+     разные фазы (ходьба/атака/смерть) имеют разный холст с разным полем,
+     фиксированная высота картинки исказила бы откалиброванный зазор до пола. */
   .unit.sprite-of-Mammoth .hp-track { top: -74px; }
-  .unit.sprite-of-Flyer .unit-sprite { height: 51px; }
   .unit.sprite-of-Flyer .hp-track { top: -58px; }
   .unit-sprite {
     position: absolute; bottom: 0; left: 50%;
     transform: translateX(-50%);
-    height: 44px; width: auto; pointer-events: none;
+    width: auto; pointer-events: none;
   }
   .unit-sprite.flipped { transform: translateX(-50%) scaleX(-1); }
   .unit.sprite-unit.dying .unit-sprite { animation: deathBlink 1.1s steps(1,end) forwards; }
@@ -290,16 +283,14 @@
 
   #unit-buttons { display: flex; gap: 6px; }
   .spawn-btn {
-    flex: 1; border: 2px solid rgba(255,255,255,0.55); border-radius: 10px;
-    background: rgba(255,255,255,0.14); color: var(--text);
+    flex: 1; border: 2px solid rgba(255,255,255,0.35); border-radius: 10px;
+    background: rgba(255,255,255,0.05); color: var(--text);
     padding: 4px 4px 3px; font-size: 13px; display: flex; flex-direction: column; align-items: center; gap: 0px;
     cursor: pointer;
   }
   .spawn-btn .ic { font-size: 36px; }
   .spawn-btn .cost { color: var(--accent); font-size: 11px; font-weight: 600; text-shadow: 0 1px 2px #000; }
-  /* Не хватает провизии — раньше это была стандартная активная кнопка,
-     теперь наоборот: активная стала ярче, а эта заняла её прежний вид */
-  .spawn-btn.disabled { border-color: rgba(255,255,255,0.35); background: rgba(255,255,255,0.05); }
+  .spawn-btn.disabled { opacity: 0.35; }
   .spawn-btn.locked { opacity: 0.25; }
 
   #battle-result {
@@ -340,12 +331,33 @@
     padding-bottom: 8px; display: flex; flex-direction: column; gap: 8px; align-items: center;
   }
   .shop-row.loading .price { font-size: 18px; }
-.unit.sprite-of-Warrior .unit-sprite { height: 74.8px; } /* 44 × 1.7 */
-.unit.sprite-of-Warrior .hp-track { top: -83px; }
-  
+
+  /* Заставка загрузки */
+  #splash-screen {
+    position: fixed; inset: 0; z-index: 1000;
+    display: none; align-items: center; justify-content: center;
+    background: #000;
+  }
+  #splash-screen.show { display: flex; }
+  #splash-screen img { width: 100%; height: 100%; object-fit: cover; }
+  #splash-spinner {
+    position: absolute; bottom: 14%; left: 50%; transform: translateX(-50%);
+    width: 40px; height: 40px; border-radius: 50%;
+    border: 4px solid rgba(255,255,255,0.25); border-top-color: #fff;
+    animation: splashSpin 0.8s linear infinite;
+  }
+  @keyframes splashSpin { to { transform: translateX(-50%) rotate(360deg); } }
+
+  /* Фоны экранов меню/магазина/боя — по эпохе, задаются JS через style.backgroundImage */
+  #screen-menu, #screen-shop { background-size: cover; background-position: center; }
+
 </style>
 </head>
 <body>
+<div id="splash-screen">
+  <img id="splash-img" src="" alt="">
+  <div id="splash-spinner"></div>
+</div>
 <div id="app">
 
   <div class="screen active" id="screen-menu">
@@ -376,7 +388,7 @@
             <span>Сброс</span>
           </button>
           <button class="menu-sec-btn" id="btn-go-shop">
-            <img src="assets/icons/Shop.png">
+            <span class="sec-icon">🛒</span>
             <span>Магазин</span>
           </button>
         </div>
@@ -447,7 +459,7 @@
         <div style="display:flex; flex-direction:column; gap:8px; width:100%; max-width:280px;margin-top:8px;">
           <button class="result-btn" id="result-btn-primary" style="font-size:18px;padding:14px;"></button>
           <div style="display:flex;gap:8px;">
-            <button class="result-btn result-btn-secondary" id="result-btn-shop" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:12px 8px;"><img src="assets/icons/Shop.png" style="width:36px;height:36px;object-fit:contain;filter:drop-shadow(0 0 1px rgba(0,0,0,0.4));"> Магазин</button>
+            <button class="result-btn result-btn-secondary" id="result-btn-shop" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:12px 8px;"><span style="font-size:28px;">🛒</span> Магазин</button>
             <button class="result-btn result-btn-secondary" id="result-btn-menu" style="flex:1;padding:12px 8px;">‹ В меню</button>
           </div>
         </div>
@@ -455,7 +467,7 @@
 
       <div id="battle-bottom">
         <div id="food-bar-wrap">
-          <div id="food-label"><span>🍖 Провизия</span><span id="food-num">0</span></div>
+          <div id="food-label"><span id="food-icon-label">🍖 Провизия</span><span id="food-num">0</span></div>
           <div id="food-track"><div id="food-fill"></div></div>
         </div>
         <div id="unit-buttons"></div>
@@ -466,25 +478,11 @@
 </div>
 
 <script>
-/* VERSION: v16 (depth-era) — правки по скриншотам:
-   1) Портреты Мамонта/Птеродактиля на вкладке "Воины" увеличены под те же
-      пропорции, что уже откалиброваны в бою (65/44 и 51/44 от базового).
-   2) Стрела лучника: убран искусственный сдвиг точки старта к цели и
-      плоское смещение 5% для всех типов — теперь центр силуэта считается
-      по РЕАЛЬНОЙ высоте спрайта конкретного юнита (SPRITE_HEIGHT_PX).
-   3) Кнопки призыва: активные/неактивные (по нехватке провизии) поменялись
-      контрастностью местами — активные стали заметно ярче.
-   4) Экран победы: иконка монеты в блоке "бонус" была в строке label
-      (13px), из-за чего 47px-картинка вылезала за пределы строки —
-      перенесена в строку val (та уже центрирована через inline-flex).
-   5) Блок предстоящих врагов переписан на JS-раскладку: до 2 рядов,
-      наложение иконок до ~28%, ряды не заходят левее середины экрана,
-      степень наложения и число рядов пересчитываются на каждый тик под
-      текущую длину очереди (не анимация, а перерасчёт состояния).
-   НЕ трогал в этой версии: разворот вражеского птеродактиля и его
-   уменьшение при смерти — обе гипотезы (PNG-исходник, размер источника)
-   пользователь снял на скриншоте, нужна дополнительная диагностика. */
-const GAME_VERSION = "v16 (depth-era)";
+/* VERSION: v15.2 (depth-era) — фикс выравнивания карточек воинов: причина
+   была не в описании (.desc), а в названии (.name) — "Птеродактиль с
+   наездником" длиннее и переносится на 2 строки, "Мамонт с наездником" на
+   1, высота под название не резервировалась. Добавлен min-height:32px */
+const GAME_VERSION = "v15.2 (depth-era)";
 
 /* ============ Конфигурация: Каменный век ============ */
 const STONE_UNIT_DEFS = {
@@ -542,10 +540,10 @@ const STONE_LEGEND = {
 };
 
 const STONE_UNIT_ICONS = {
-  infantry: "assets/icons/Icon_1.png",
-  archer:   "assets/icons/Icon_2.png",
-  mammoth:  "assets/icons/Icon_3.png",
-  flyer:    "assets/icons/Icon_4.png",
+  infantry: "icons/Unit_1.png",
+  archer:   "icons/Unit_2.png",
+  mammoth:  "icons/Unit_3.png",
+  flyer:    "icons/Unit_4.png",
 };
 
 /* ============ Конфигурация: Средневековье ============ */
@@ -625,10 +623,10 @@ const AD_UPGRADE_DEFS = {
 };
 
 const MEDIEVAL_UNIT_ICONS = {
-  swordsman: "assets/icons/Icon_1.png",
-  crossbow:  "assets/icons/Icon_2.png",
-  knight:    "assets/icons/Icon_3.png",
-  dragon:    "assets/icons/Icon_4.png",
+  swordsman: "icons/Unit_1.png",
+  crossbow:  "icons/Unit_2.png",
+  knight:    "icons/Unit_3.png",
+  dragon:    "icons/Unit_4.png",
 };
 
 /* Покупки за Telegram Stars — доступны только во вкладке Средневековья,
@@ -650,67 +648,43 @@ function upgradeDisplayValue(key, lvl) {
   return String(lvl);
 }
 
-/* ============ Реестр эпох ============ */
+/* ============ Реестр эпох ============
+   assetKey — имя папки на GitHub (assets/<assetKey>/...), отдельное от
+   игрового ключа эпохи ("stone"/"medieval" совпадают сейчас, но это не
+   гарантировано на будущее — например, если появятся доп. подветки). */
 const EPOCHS = {
   stone: {
-    name: "Каменный век", tabIcon: "🪓",
+    name: "Каменный век", tabIcon: "🪓", assetKey: "stone",
     unitDefs: STONE_UNIT_DEFS, unitOrder: STONE_UNIT_ORDER, levels: STONE_LEVELS,
     goldPerKill: STONE_GOLD_PER_KILL, upgradeDefs: BASE_UPGRADE_DEFS, legend: STONE_LEGEND,
-    baseSvg: tentSvg,
-    baseSrc: "assets/base/Base",
     unitIcons: STONE_UNIT_ICONS,
   },
   medieval: {
-    name: "Средневековье", tabIcon: "⚔️",
+    name: "Средневековье", tabIcon: "⚔️", assetKey: "medieval",
     unitDefs: MEDIEVAL_UNIT_DEFS, unitOrder: MEDIEVAL_UNIT_ORDER, levels: MEDIEVAL_LEVELS,
     goldPerKill: MEDIEVAL_GOLD_PER_KILL, upgradeDefs: MEDIEVAL_UPGRADE_DEFS, legend: MEDIEVAL_LEGEND,
-    baseSvg: castleSvg, baseSrc: "assets/base/Base",
     unitIcons: MEDIEVAL_UNIT_ICONS,
     adUpgradeDefs: AD_UPGRADE_DEFS,
   },
 };
 const EPOCH_ORDER = ["stone", "medieval"];
 
-/* ============ SVG-шаблоны баз (шатёр / замок) ============ */
-function tentSvg(main, dark) {
-  return '<svg viewBox="0 0 100 100">' +
-    '<g class="tent-intact">' +
-    '<path d="M 10 90 L 50 15 L 90 90 Z" fill="' + main + '" stroke="' + dark + '" stroke-width="6" stroke-linejoin="round"/>' +
-    '<path d="M 38 90 L 50 55 L 62 90" fill="' + dark + '" stroke="' + dark + '" stroke-width="6" stroke-linejoin="round"/>' +
-    '</g>' +
-    '<g class="tent-cracks-1" stroke="' + dark + '" stroke-width="2.5" fill="none"><path d="M 45 30 L 38 55 L 44 70"/></g>' +
-    '<g class="tent-cracks-2" stroke="' + dark + '" stroke-width="2.5" fill="none"><path d="M 60 25 L 68 50 L 60 78"/><path d="M 30 60 L 42 80"/></g>' +
-    '<g class="tent-ruins">' +
-    '<path d="M 8 90 L 30 70 L 22 90 Z" fill="#6b5a44" stroke="' + dark + '" stroke-width="4"/>' +
-    '<path d="M 35 90 L 55 60 L 70 90 Z" fill="' + main + '" stroke="' + dark + '" stroke-width="4"/>' +
-    '<path d="M 72 90 L 88 78 L 92 90 Z" fill="#6b5a44" stroke="' + dark + '" stroke-width="4"/>' +
-    '<line x1="15" y1="90" x2="92" y2="90" stroke="' + dark + '" stroke-width="4"/>' +
-    '</g></svg>';
+/* Корень ассетов текущей эпохи, например "assets/stone/" */
+function epochAssetRoot(epochKey) {
+  return "assets/" + EPOCHS[epochKey || SAVE.currentEpoch].assetKey + "/";
+}
+/* Путь к ассету текущей (или явно указанной) эпохи, напр. A("ui/Coin_1.png") */
+function A(relPath, epochKey) {
+  return epochAssetRoot(epochKey) + relPath;
 }
 
-function castleSvg(main, dark) {
-  return '<svg viewBox="0 0 100 100">' +
-    '<g class="tent-intact">' +
-    '<rect x="15" y="35" width="70" height="55" fill="' + main + '" stroke="' + dark + '" stroke-width="6"/>' +
-    '<rect x="13" y="18" width="16" height="20" fill="' + main + '" stroke="' + dark + '" stroke-width="5"/>' +
-    '<rect x="71" y="18" width="16" height="20" fill="' + main + '" stroke="' + dark + '" stroke-width="5"/>' +
-    '<rect x="42" y="20" width="16" height="18" fill="' + main + '" stroke="' + dark + '" stroke-width="5"/>' +
-    '<path d="M42 90 L42 60 Q50 52 58 60 L58 90 Z" fill="' + dark + '" stroke="' + dark + '" stroke-width="4"/>' +
-    '</g>' +
-    '<g class="tent-cracks-1" stroke="' + dark + '" stroke-width="2.5" fill="none"><path d="M30 50 L25 70 L32 88"/></g>' +
-    '<g class="tent-cracks-2" stroke="' + dark + '" stroke-width="2.5" fill="none"><path d="M65 45 L72 65 L64 88"/></g>' +
-    '<g class="tent-ruins">' +
-    '<path d="M10 90 L28 65 L20 90 Z" fill="#6b5a44" stroke="' + dark + '" stroke-width="4"/>' +
-    '<path d="M35 90 L52 55 L68 90 Z" fill="' + main + '" stroke="' + dark + '" stroke-width="4"/>' +
-    '<path d="M75 90 L88 72 L92 90 Z" fill="#6b5a44" stroke="' + dark + '" stroke-width="4"/>' +
-    '<line x1="8" y1="90" x2="92" y2="90" stroke="' + dark + '" stroke-width="4"/>' +
-    '</g></svg>';
-}
+/* SVG-шаблоны тента/замка убраны — база теперь реальные PNG (own/enemy,
+   5 фаз повреждения), см. BASE_PHASES и updateTentDamage() */
 
 /* Текущие активные конфиги — переключаются applyEpoch() при смене вкладки эпохи.
    Это намеренно `let`, а не `const`: вся остальная логика обращается к ним
    по этим именам и не должна знать про эпохи напрямую. */
-let UNIT_DEFS, UNIT_ORDER, LEVELS, GOLD_PER_KILL, UPGRADE_DEFS, UNIT_LEGEND_TEXT, baseSvgFn, baseSrc, UNIT_ICONS;
+let UNIT_DEFS, UNIT_ORDER, LEVELS, GOLD_PER_KILL, UPGRADE_DEFS, UNIT_LEGEND_TEXT, UNIT_ICONS;
 
 function applyEpoch(key) {
   const ep = EPOCHS[key];
@@ -720,9 +694,24 @@ function applyEpoch(key) {
   GOLD_PER_KILL = ep.goldPerKill;
   UPGRADE_DEFS = ep.upgradeDefs;
   UNIT_LEGEND_TEXT = ep.legend;
-  baseSvgFn = ep.baseSvg;
-  baseSrc = ep.baseSrc || "assets/base/Base";
-  UNIT_ICONS = ep.unitIcons || {};
+  UNIT_ICONS = {};
+  for (const k in (ep.unitIcons || {})) UNIT_ICONS[k] = A(ep.unitIcons[k], key);
+  UPGRADE_ICON_SRCS = {
+    dmg:      A("icons/Upgrade_1.png", key),
+    hp:       A("icons/Upgrade_2.png", key),
+    baseHp:   A("icons/Upgrade_3.png", key),
+    foodRate: A("icons/Upgrade_4.png", key),
+    defense:  A("icons/Upgrade_5.png", key),
+  };
+  applyEpochBackgrounds(key);
+}
+
+/* Фоны меню/магазина/боя — по эпохе. */
+function applyEpochBackgrounds(key) {
+  el("screen-menu").style.backgroundImage = 'url(' + A("backgrounds/Menu.png", key) + ')';
+  el("screen-shop").style.backgroundImage = 'url(' + A("backgrounds/Shop.png", key) + ')';
+  el("lane-wrap").style.setProperty('--fight-bg', 'url(' + A("backgrounds/Fight.png", key) + ')');
+  el("food-icon-label").innerHTML = '<img src="' + A("ui/Food_1.png", key) + '" style="width:20px;height:20px;object-fit:contain;vertical-align:middle;"> Провизия';
 }
 
 /* ============ Сохранение ============ */
@@ -844,9 +833,46 @@ function critChance() { return Math.min(0.6, 0.05 * (EP().upgrades.crit || 0)); 
 
 const el = (id) => document.getElementById(id);
 
+/* ============ Заставка загрузки ============
+   Показывается: (1) при старте игры, до появления меню; (2) перед каждым
+   стартом боя (уровень, "Дальше", "Повторить" и т.п.). Не менее 1 секунды
+   даже если ассеты уже в кэше браузера. Картинка заставки общая на игру
+   (не по эпохам) — assets/shared/splash.png. */
+const SPLASH_MIN_MS = 1000;
+let splashImgSet = false;
+
+function preloadImages(srcs) {
+  return Promise.all(srcs.map((src) => new Promise((resolve) => {
+    const img = new Image();
+    img.onload = resolve;
+    img.onerror = resolve; // не блокируем показ игры, если один из ассетов не загрузился
+    img.src = src;
+  })));
+}
+
+function showSplash(assetPromise) {
+  if (!splashImgSet) {
+    el("splash-img").src = "assets/shared/splash.png";
+    splashImgSet = true;
+  }
+  el("splash-screen").classList.add("show");
+  const minWait = new Promise((resolve) => setTimeout(resolve, SPLASH_MIN_MS));
+  return Promise.all([assetPromise, minWait]).then(() => {
+    el("splash-screen").classList.remove("show");
+  });
+}
+
+
 /* Хелпер: иконка монеты вместо эмодзи 🪙 */
 function coinImg(sz) {
-  return '<img src="assets/icons/Coin_1.png" style="width:' + sz + 'px;height:' + sz + 'px;object-fit:contain;vertical-align:middle;">';
+  return '<img src="' + A("ui/Coin_1.png") + '" style="width:' + sz + 'px;height:' + sz + 'px;object-fit:contain;vertical-align:middle;">';
+}
+
+/* Иконка результата боя (череп/кубок) вместо эмодзи, по эпохе. name — без
+   расширения, напр. "Skull_1"/"Cup_1" (файлы в ui/, без круглого бейджа —
+   см. STONEAGE_CHATGPT_PROMPTS.md, раздел 5). */
+function resultIconImg(name) {
+  return '<img src="' + A("ui/" + name + ".png") + '" style="width:56px;height:56px;object-fit:contain;">';
 }
 
 /* Тактильный отклик при ударе по базе игрока. Внутри Telegram — нативный
@@ -861,16 +887,43 @@ function triggerHitHaptic() {
   }
 }
 
-/* Реальная высота спрайта в px — из CSS (.unit-sprite / .sprite-of-Mammoth /
-   .sprite-of-Flyer). Нужна стрелам, чтобы бить точно в центр силуэта КАЖДОГО
-   типа юнита, а не по одному плоскому проценту для всех. */
-const SPRITE_HEIGHT_PX = { default: 44, Mammoth: 65, Flyer: 51 };
-
 /* Маппинг типов юнитов → имя спрайта */
 const SPRITE_MAP = {
   infantry: "Warrior", archer: "Archer", mammoth: "Mammoth", flyer: "Flyer",
   swordsman: "Warrior", crossbow: "Archer", knight: "Mammoth", dragon: "Flyer",
 };
+
+/* RATIO = целевая_высота_на_экране / рост_силуэта_на_кадре_ходьбы (см.
+   STONEAGE_ASSET_PIPELINE.md, раздел 3 "Зазор до пола"). Пересчитано под
+   целевые 44/44/65/51px (старые размеры до многокадровой системы) —
+   поправить здесь, если понадобится другой размер (одна точка изменения). */
+const SPRITE_RATIO = {
+  Warrior: 0.1841,
+  Archer:  0.1811,
+  Mammoth: 0.3234,
+  Flyer:   0.2982,
+};
+
+/* Число кадров по фазам для каждого спрайта — своё у птеродактиля (9 кадров
+   ходьбы вместо 12), см. STONEAGE_ASSET_PIPELINE.md раздел 9 за источником. */
+const SPRITE_FRAME_COUNTS = {
+  Warrior: { walk: 12, attack: 6, death: 4 },
+  Archer:  { walk: 12, attack: 6, death: 4 },
+  Mammoth: { walk: 12, attack: 6, death: 4 },
+  Flyer:   { walk: 9,  attack: 6, death: 4 },
+};
+
+const ANIM_FRAME_MS = 150;         // между кадрами ходьбы/атаки/смерти (легко поменять)
+const DEATH_HOLD_MS = 700;         // пауза на последнем кадре смерти у наземных перед миганием
+const DEATH_BLINK_MS_GROUND = 1100;
+const DEATH_BLINK_MS_FLYER = 1300; // у летающих длиннее — падение идёт одновременно
+const FLYER_FALL_FROM_FRAME = 2;   // с какого кадра смерти птеродактиль начинает "падать"
+const FLYER_FALL_PX_PER_FRAME = 18; // подобрано на глаз, поправить при необходимости
+
+/* Путь к конкретному кадру спрайта: sprites/Warrior_own_walk3.png и т.п. */
+function spriteFramePath(spriteName, side, phase, frame, epochKey) {
+  return A("sprites/" + spriteName + "_" + side + "_" + phase + frame + ".png", epochKey);
+}
 
 function showScreen(id) {
   document.querySelectorAll(".screen").forEach((s) => s.classList.remove("active"));
@@ -941,17 +994,16 @@ function renderUnitCards(containerId) {
   UNIT_ORDER.forEach((key) => {
     const def = UNIT_DEFS[key];
     const spriteName = SPRITE_MAP[key];
-    const portraitSrc = spriteName ? "assets/sprites/" + spriteName + "_idle.png" : null;
+    const portraitSrc = spriteName ? spriteFramePath(spriteName, "own", "walk", 1) : null;
     const hp = Math.round(def.hp * hpMul());
     const atk = Math.round(def.atk * dmgMul());
     const speed = +(def.speed * unitSpeedMul()).toFixed(2);
     const cc = Math.round(critChance() * 100);
     const critLine = cc > 0 ? statLine("🎯крит", cc + "%") : "";
-    const portraitSizeClass = spriteName === "Mammoth" ? " portrait-lg" : spriteName === "Flyer" ? " portrait-md" : "";
     const card = document.createElement("div");
     card.className = "unit-card";
     card.innerHTML =
-      (portraitSrc ? '<img class="portrait' + portraitSizeClass + '" src="' + portraitSrc + '">' : '<div style="font-size:44px;">' + def.icon + '</div>') +
+      (portraitSrc ? '<img class="portrait" src="' + portraitSrc + '">' : '<div style="font-size:44px;">' + def.icon + '</div>') +
       '<div class="name">' + def.name + '</div>' +
       '<div class="desc">' + UNIT_LEGEND_TEXT[key] + '</div>' +
       '<div class="stat-row">' +
@@ -1192,14 +1244,9 @@ function attemptHardRewardPayout() {
     .catch(() => { /* сеть недоступна — попробуем при следующем удобном случае */ });
 }
 
-/* Маппинг ключей апгрейдов → иконки (порядок Upgrade_1..5: урон, HP, база, провизия, защита) */
-const UPGRADE_ICON_SRCS = {
-  dmg:      "assets/icons/Upgrade_1.png",
-  hp:       "assets/icons/Upgrade_2.png",
-  baseHp:   "assets/icons/Upgrade_3.png",
-  foodRate: "assets/icons/Upgrade_4.png",
-  defense:  "assets/icons/Upgrade_5.png",
-};
+/* Маппинг ключей апгрейдов → иконки (порядок Upgrade_1..5: урон, HP, база, провизия, защита).
+   Заполняется в applyEpoch() — пути зависят от текущей эпохи. */
+let UPGRADE_ICON_SRCS = {};
 
 function iconTag(src, size) {
   return '<img src="' + src + '" style="width:' + size + 'px;height:' + size + 'px;object-fit:contain;vertical-align:middle;filter:drop-shadow(0 0 1px rgba(0,0,0,0.4));">';
@@ -1365,7 +1412,7 @@ const SIDE_COLORS = {
   enemy:  { main: "#d9483a", dark: "#3a1410" },
 };
 
-function startBattle(levelIndex) {
+function startBattleInner(levelIndex) {
   const levelDef = LEVELS[levelIndex];
   const diff = DIFFICULTIES[SAVE.difficulty] || DIFFICULTIES.normal;
   battle = {
@@ -1390,8 +1437,8 @@ function startBattle(levelIndex) {
     deathElapsed: null,
     deathWave: null,
   };
-  el("tent-player").innerHTML = '<img src="' + baseSrc + '_intact.png" class="base-img">';
-  el("tent-enemy").innerHTML = '<img src="' + baseSrc + '_intact.png" class="base-img">';
+  el("tent-player").innerHTML = '<img src="' + A("base/Base_own_intact.png") + '" class="base-img">';
+  el("tent-enemy").innerHTML = '<img src="' + A("base/Base_enemy_intact.png") + '" class="base-img">';
   el("tent-player").className = "tent player";
   el("tent-enemy").className = "tent enemy";
   el("btn-speed").textContent = "1x";
@@ -1408,6 +1455,17 @@ function startBattle(levelIndex) {
 
   if (battleTimer) clearInterval(battleTimer);
   battleTimer = setInterval(battleTick, TICK_MS);
+}
+
+/* Обёртка startBattleInner — показывает заставку (не менее 1с) поверх
+   прелоада фона боя и базы текущей эпохи, потом запускает сам бой. */
+function startBattle(levelIndex) {
+  const assets = [
+    A("backgrounds/Fight.png"),
+    A("base/Base_own_intact.png"),
+    A("base/Base_enemy_intact.png"),
+  ];
+  showSplash(preloadImages(assets)).then(() => startBattleInner(levelIndex));
 }
 
 function stopBattle() {
@@ -1441,35 +1499,36 @@ el("btn-pause").addEventListener("click", () => {
   }
 });
 
-/* Центр силуэта юнита по вертикали (в % от низа lane-wrap), с учётом
-   реальной высоты именно его спрайта — не плоское число для всех типов. */
-function spriteCenterOffsetPct(unit, wrapH) {
-  const heightPx = unit.spriteName ? (SPRITE_HEIGHT_PX[unit.spriteName] || SPRITE_HEIGHT_PX.default) : SPRITE_HEIGHT_PX.default;
-  return (heightPx / 2) / wrapH * 100;
-}
-
 function spawnProjectile(attacker, target) {
   const laneWrap = el("lane-wrap");
   const wrapW = laneWrap.clientWidth || 390;
   const wrapH = laneWrap.clientHeight || 700;
 
-  const attackerOff = spriteCenterOffsetPct(attacker, wrapH);
-  const startX = attacker.pos / 100 * wrapW;
-  const startY = wrapH - (attacker.lane + attackerOff) / 100 * wrapH;
+  // Центр силуэта юнита (примерная середина по высоте, не точка у ног)
+  const CENTER_HEIGHT_OFF = 5; // % от lane-wrap
+  const centerX = attacker.pos / 100 * wrapW;
+  const centerY = wrapH - (attacker.lane + CENTER_HEIGHT_OFF) / 100 * wrapH;
 
   let endX, endY;
   if (target && target.el) {
-    const targetOff = spriteCenterOffsetPct(target, wrapH);
     endX = target.pos / 100 * wrapW;
-    endY = wrapH - (target.lane + targetOff) / 100 * wrapH;
+    endY = wrapH - (target.lane + CENTER_HEIGHT_OFF) / 100 * wrapH;
   } else {
     const tPos = attacker.side === "player" ? BASE_POS.enemy + 2 : BASE_POS.player - 2;
     endX = tPos / 100 * wrapW;
-    endY = startY;
+    endY = centerY;
   }
 
-  // Стрела летит от центра силуэта атакующего к центру силуэта цели —
-  // без искусственного смещения точки старта (координаты уже точные).
+  // Не знаем точно, где на спрайте находится лук/рука — вместо гадания
+  // стрела летит по траектории от центра силуэта к цели, но становится
+  // видимой не в самом центре, а с небольшим смещением в сторону цели
+  // (всё ещё в пределах силуэта юнита, ~14px).
+  const dx = endX - centerX, dy = endY - centerY;
+  const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+  const VISIBLE_OFFSET_PX = 14;
+  const startX = centerX + (dx / dist) * VISIBLE_OFFSET_PX;
+  const startY = centerY + (dy / dist) * VISIBLE_OFFSET_PX;
+
   const angle = Math.atan2(endY - startY, endX - startX) * 180 / Math.PI;
   const startLeftPct = startX / wrapW * 100;
   const startBottomPct = (wrapH - startY) / wrapH * 100;
@@ -1477,7 +1536,7 @@ function spawnProjectile(attacker, target) {
   const endBottomPct = (wrapH - endY) / wrapH * 100;
 
   const arrow = document.createElement("img");
-  arrow.src = "assets/icons/Arrow_2.png";
+  arrow.src = A("ui/Arrow_1.png");
   arrow.style.cssText = [
     "position:absolute",
     "pointer-events:none",
@@ -1594,16 +1653,22 @@ function mountUnitEl(unit) {
   node.appendChild(hpDiv);
 
   if (spriteName) {
+    // own/enemy — уже готовые (отзеркаленные и перекрашенные) наборы файлов,
+    // никакой доп. логики отражения тут больше не нужно.
+    const spriteSide = unit.side === "player" ? "own" : "enemy";
+    unit.spriteSide = spriteSide;
+    unit.spriteName = spriteName;
+    unit.animPhase = "walk";
+    unit.animFrame = 1;
+    unit.animAccum = 0;
+
     const img = document.createElement("img");
-    img.src = "assets/sprites/" + spriteName + "_walk.png";
     img.className = "unit-sprite";
-    let shouldFlip = unit.facesLeft ? unit.side === "player" : unit.side === "enemy";
-    // Спрайт мамонта/рыцаря отражён иначе, чем остальные facesLeft-юниты — точечный фикс
-    if (spriteName === "Mammoth") shouldFlip = !shouldFlip;
-    if (shouldFlip) img.classList.add("flipped");
+    const ratio = SPRITE_RATIO[spriteName] || 0.2;
+    img.onload = () => { img.style.height = (img.naturalHeight * ratio) + "px"; };
+    img.src = spriteFramePath(spriteName, spriteSide, "walk", 1);
     node.appendChild(img);
     unit.spriteEl = img;
-    unit.spriteName = spriteName;
   } else {
     const mirror = unit.facesLeft ? unit.side === "player" : unit.side === "enemy";
     const span = mirror
@@ -1616,6 +1681,7 @@ function mountUnitEl(unit) {
   unit.el = node;
   updateUnitEl(unit);
 }
+
 
 function updateUnitEl(unit) {
   if (!unit.el) return;
@@ -1671,16 +1737,12 @@ function battleTick() {
       } else {
         unit.cooldown = 900;
         if (unit.el) { unit.el.classList.remove("attacking"); void unit.el.offsetWidth; unit.el.classList.add("attacking"); }
-        // Спрайт атаки
+        // Новая атака - сброс на первый кадр анимации атаки (SPRITE_FRAME_COUNTS.attack штук)
         if (unit.spriteEl && unit.spriteName) {
-          const atkSrc = unit.spriteName === "Archer"
-            ? "assets/sprites/Archer_attack_2.png"
-            : "assets/sprites/" + unit.spriteName + "_attack.png";
-          unit.spriteEl.src = atkSrc;
-          unit.attackAnimUntil = Date.now() + 450;
-          setTimeout(() => {
-            if (unit.spriteEl && unit.hp > 0) unit.spriteEl.src = "assets/sprites/" + unit.spriteName + "_walk.png";
-          }, 450);
+          unit.animPhase = "attack";
+          unit.animFrame = 1;
+          unit.animAccum = 0;
+          unit.spriteEl.src = spriteFramePath(unit.spriteName, unit.spriteSide, "attack", 1);
         }
         let dmg = unit.atk;
         if (unit.side === "player" && Math.random() < critChance()) dmg *= 2;
@@ -1702,16 +1764,14 @@ function battleTick() {
       unit.pos += dir * unit.speed * (TICK_MS / 100) * sp;
       const airOff = unit.isAir ? 7 : 0;
       unit.pos = Math.max(BASE_POS.player + airOff, Math.min(BASE_POS.enemy - airOff, unit.pos));
-      // Чередование idle/walk кадров — дешёвая имитация ходьбы вместо "плавания"
-      if (unit.spriteEl && unit.spriteName && (!unit.attackAnimUntil || Date.now() > unit.attackAnimUntil)) {
-        unit.walkAccum = (unit.walkAccum || 0) + TICK_MS * sp;
-        if (unit.walkAccum >= 260) {
-          unit.walkAccum = 0;
-          unit.walkFrame = !unit.walkFrame;
-          unit.spriteEl.src = "assets/sprites/" + unit.spriteName + (unit.walkFrame ? "_walk.png" : "_idle.png");
-        }
+      // Юнит больше не атакует (вышел из радиуса/цель исчезла) - возвращаемся к ходьбе
+      if (unit.spriteEl && unit.animPhase && unit.animPhase !== "walk") {
+        unit.animPhase = "walk";
+        unit.animFrame = 1;
+        unit.animAccum = 0;
       }
     }
+    advanceSpriteFrame(unit, TICK_MS * sp);
     updateUnitEl(unit);
   }
 
@@ -1720,6 +1780,27 @@ function battleTick() {
   renderBattleHp();
   renderFood();
   checkBattleEnd();
+}
+
+/* Продвигает кадр анимации юнита (ходьба/атака) на dtMs. Смерть обрабатывается
+   отдельно в onUnitKilled - там своя последовательность (кадры -> пауза/падение
+   -> мигание -> удаление), не связанная с обычным тиком боя. */
+function advanceSpriteFrame(unit, dtMs) {
+  if (!unit.spriteEl || !unit.spriteName || !unit.animPhase || unit.animPhase === "death") return;
+  const maxFrame = SPRITE_FRAME_COUNTS[unit.spriteName][unit.animPhase];
+  unit.animAccum += dtMs;
+  let changed = false;
+  while (unit.animAccum >= ANIM_FRAME_MS) {
+    unit.animAccum -= ANIM_FRAME_MS;
+    unit.animFrame++;
+    changed = true;
+    if (unit.animFrame > maxFrame) {
+      // Ходьба зацикливается; атака доигрывает и держится на последнем кадре
+      // до конца кулдауна (следующая атака сама сбросит кадр на 1).
+      unit.animFrame = unit.animPhase === "walk" ? 1 : maxFrame;
+    }
+  }
+  if (changed) unit.spriteEl.src = spriteFramePath(unit.spriteName, unit.spriteSide, unit.animPhase, unit.animFrame);
 }
 
 function updateGoldDisplay() {
@@ -1737,7 +1818,7 @@ function spawnCoinFly(fromEl, value) {
   coinWrap.className = "coin-fly";
 
   const coinImg = document.createElement("img");
-  coinImg.src = "assets/icons/Coin_1.png";
+  coinImg.src = A("ui/Coin_1.png");
   coinWrap.appendChild(coinImg);
   if (value > 1) {
     const valEl = document.createElement("span");
@@ -1756,7 +1837,7 @@ function spawnCoinFly(fromEl, value) {
   let frame = 1;
   const frameTimer = setInterval(() => {
     frame = (frame % 3) + 1;
-    coinImg.src = "assets/icons/Coin_" + frame + ".png";
+    coinImg.src = A("ui/Coin_" + frame + ".png");
   }, 100);
 
   // Фаза 1: падение на дорогу (случайная X по ширине дороги)
@@ -1783,17 +1864,42 @@ function spawnCoinFly(fromEl, value) {
 function onUnitKilled(victim, killer) {
   if (victim.el) {
     if (victim.spriteEl && victim.spriteName) {
-      victim.spriteEl.src = "assets/sprites/" + victim.spriteName + "_death.png";
-      if (victim.isAir) {
-        // Летающие — падают вниз, мигая, сразу без статичной паузы
-        victim.el.classList.add("dying-fall");
-        setTimeout(() => victim.el && victim.el.remove(), 1400);
+      const deathCount = SPRITE_FRAME_COUNTS[victim.spriteName].death;
+      let frame = 1;
+      victim.animPhase = "death";
+      victim.spriteEl.src = spriteFramePath(victim.spriteName, victim.spriteSide, "death", frame);
+
+      const finishDeath = () => {
+        if (victim.isAir) {
+          // Летающие — без статичной паузы, сразу падение+мигание (существующие CSS-классы)
+          victim.el.classList.add("dying-fall");
+          setTimeout(() => victim.el && victim.el.remove(), DEATH_BLINK_MS_FLYER + 100);
+        } else {
+          // Наземные — лежат статично (последний кадр смерти), потом мигают
+          setTimeout(() => { if (victim.el) victim.el.classList.add("dying"); }, DEATH_HOLD_MS);
+          setTimeout(() => victim.el && victim.el.remove(), DEATH_HOLD_MS + DEATH_BLINK_MS_GROUND);
+        }
+      };
+
+      if (deathCount <= 1) {
+        finishDeath();
       } else {
-        // Наземные — лежат статично (кадр death уже изображает лежащего) подольше, потом мигают
-        setTimeout(() => {
-          if (victim.el) victim.el.classList.add("dying");
-        }, 700);
-        setTimeout(() => victim.el && victim.el.remove(), 1800);
+        const cycleTimer = setInterval(() => {
+          frame++;
+          if (frame > deathCount) {
+            clearInterval(cycleTimer);
+            finishDeath();
+            return;
+          }
+          victim.spriteEl.src = spriteFramePath(victim.spriteName, victim.spriteSide, "death", frame);
+          // Птеродактиль "проседает" начиная с определённого кадра смерти -
+          // translateX(-50%) сохраняем (базовое центрирование спрайта), CSS-анимация
+          // deathFallMove подхватит движение дальше с этой же точки, без рывка.
+          if (victim.isAir && frame >= FLYER_FALL_FROM_FRAME) {
+            const fallPx = (frame - FLYER_FALL_FROM_FRAME + 1) * FLYER_FALL_PX_PER_FRAME;
+            victim.spriteEl.style.transform = "translateX(-50%) translateY(" + fallPx + "px)";
+          }
+        }, ANIM_FRAME_MS);
       }
     } else {
       victim.el.classList.add("dying");
@@ -1810,91 +1916,29 @@ function onUnitKilled(victim, killer) {
   }
 }
 
-/* Раскладка блока предстоящих врагов — пересчитывается заново на каждый тик
-   под ТЕКУЩУЮ длину очереди, это не анимация, а просто функция состояния:
-   - максимум 2 ряда, каждый шириной не дальше середины экрана от правого края
-   - если очередь помещается в 1 ряд без наложения — наложения нет
-   - если не помещается — сначала растёт наложение (до ~28%), рядов всё ещё 1
-   - если не хватает даже при максимальном наложении — включается 2-й ряд
-     (оба ряда сразу на максимальном наложении)
-   - если не хватает и двух рядов на максимуме — остаток показывается "+N"
-   При уменьшении очереди всё происходит в обратном порядке: сначала
-   пропадает 2-й ряд, и только потом снижается наложение в 1-м. */
-const WAVE_ICON = 39;
-const WAVE_ROW_GAP = 4;
-const WAVE_OVERLAP_MAX = 0.28;
-
-function waveRowCapacity(overlapFrac, maxRowWidth) {
-  const step = WAVE_ICON * (1 - overlapFrac);
-  if (step <= 0) return 1;
-  return Math.max(1, Math.floor((maxRowWidth - WAVE_ICON) / step) + 1);
-}
-
-function computeWaveLayout(total, maxRowWidth) {
-  const cap1_0 = waveRowCapacity(0, maxRowWidth);
-  const cap1_max = waveRowCapacity(WAVE_OVERLAP_MAX, maxRowWidth);
-  const cap2_max = cap1_max * 2;
-
-  if (total <= cap1_0) return { rows: [{ count: total, overlap: 0 }], truncated: 0 };
-
-  if (total <= cap1_max) {
-    // ищем минимальное наложение, при котором весь total влезает в 1 ряд
-    let lo = 0, hi = WAVE_OVERLAP_MAX;
-    for (let i = 0; i < 12; i++) {
-      const mid = (lo + hi) / 2;
-      if (waveRowCapacity(mid, maxRowWidth) >= total) hi = mid; else lo = mid;
-    }
-    return { rows: [{ count: total, overlap: hi }], truncated: 0 };
-  }
-
-  const shown = Math.min(total, cap2_max);
-  const row1 = Math.min(shown, cap1_max);
-  const row2 = shown - row1;
-  const rows = [{ count: row1, overlap: WAVE_OVERLAP_MAX }];
-  if (row2 > 0) rows.push({ count: row2, overlap: WAVE_OVERLAP_MAX });
-  return { rows, truncated: total - shown };
-}
-
 function renderWaveCounter() {
   const wrap = el("wave-counter");
   if (!battle.waveQueue.length) { wrap.innerHTML = ""; return; }
   const reversed = battle.waveQueue.slice().reverse();
-
-  const wrapW = el("lane-wrap").clientWidth || 390;
-  const maxRowWidth = wrapW / 2 - 8; // не левее середины экрана (минус правый паддинг блока)
-  const { rows, truncated } = computeWaveLayout(reversed.length, maxRowWidth);
-
+  const maxShow = 9;
+  const shown = reversed.slice(0, maxShow);
   wrap.innerHTML = "";
-  wrap.style.display = "flex";
-  wrap.style.flexDirection = "column";
-  wrap.style.alignItems = "flex-end";
-  wrap.style.gap = WAVE_ROW_GAP + "px";
-  wrap.style.maxWidth = maxRowWidth + "px";
-
-  let consumed = 0;
-  rows.forEach((row) => {
-    const rowEl = document.createElement("div");
-    rowEl.style.cssText = "display:flex; justify-content:flex-end;";
-    reversed.slice(consumed, consumed + row.count).forEach((w, i) => {
-      const src = UNIT_ICONS[w.type];
-      const iconEl = src ? document.createElement("img") : document.createElement("span");
-      if (src) { iconEl.src = src; }
-      else { iconEl.textContent = UNIT_DEFS[w.type].icon; }
-      const marginLeft = i === 0 ? 0 : -Math.round(WAVE_ICON * row.overlap);
-      iconEl.style.cssText = "width:" + WAVE_ICON + "px;height:" + WAVE_ICON + "px;object-fit:contain;display:inline-block;" +
-        "position:relative;z-index:" + (i + 1) + ";margin-left:" + marginLeft + "px;";
-      rowEl.appendChild(iconEl);
-    });
-    consumed += row.count;
-    wrap.appendChild(rowEl);
-  });
-
-  if (truncated > 0) {
-    const more = document.createElement("div");
-    more.style.cssText = "font-size:12px;color:#fff;text-shadow:0 1px 4px #000;text-align:right;";
-    more.textContent = "+" + truncated;
+  if (reversed.length > maxShow) {
+    const more = document.createElement("span");
+    more.style.cssText = "font-size:12px;color:#fff;text-shadow:0 1px 4px #000;margin-right:2px;vertical-align:middle;line-height:30px;";
+    more.textContent = "+" + (reversed.length - maxShow);
     wrap.appendChild(more);
   }
+  shown.forEach((w, i) => {
+    const src = UNIT_ICONS[w.type];
+    const iconEl = src ? document.createElement("img") : document.createElement("span");
+    if (src) { iconEl.src = src; }
+    else { iconEl.textContent = UNIT_DEFS[w.type].icon; }
+    iconEl.style.cssText = "width:39px;height:39px;object-fit:contain;display:inline-block;vertical-align:middle;" +
+      "position:relative;z-index:" + (i + 1) + ";" +
+      (i === 0 ? "margin-left:0;" : "margin-left:-8px;");
+    wrap.appendChild(iconEl);
+  });
 }
 
 function renderKillValues() {
@@ -1914,23 +1958,24 @@ function renderKillValues() {
 function renderBattleHp() {
   el("hp-player").style.width = Math.max(0, (battle.playerHp / battle.playerHpMax) * 100) + "%";
   el("hp-enemy").style.width = Math.max(0, (battle.enemyHp / battle.enemyHpMax) * 100) + "%";
-  updateTentDamage(el("tent-player"), battle.playerHp / battle.playerHpMax);
-  updateTentDamage(el("tent-enemy"), battle.enemyHp / battle.enemyHpMax);
+  updateTentDamage(el("tent-player"), battle.playerHp / battle.playerHpMax, "own");
+  updateTentDamage(el("tent-enemy"), battle.enemyHp / battle.enemyHpMax, "enemy");
 }
 
-function updateTentDamage(tentEl, hpFraction) {
+/* Пороги 5 фаз базы — см. STONEAGE_CHATGPT_PROMPTS.md, раздел про базу:
+   100-76% / 75-51% / 50-26% / 25-6% / 5-0%. */
+function basePhaseFor(hpFraction) {
+  if (hpFraction > 0.75) return "intact";
+  if (hpFraction > 0.50) return "light";
+  if (hpFraction > 0.25) return "medium";
+  if (hpFraction > 0.05) return "heavy";
+  return "destroyed";
+}
+
+function updateTentDamage(tentEl, hpFraction, side) {
   const img = tentEl.querySelector("img.base-img");
-  if (img) {
-    if (hpFraction <= 0) img.src = baseSrc + "_destroyed.png";
-    else if (hpFraction <= 0.35) img.src = baseSrc + "_cracked.png";
-    else img.src = baseSrc + "_intact.png";
-  } else {
-    // fallback для SVG (если img нет)
-    tentEl.classList.remove("dmg1", "dmg2", "ruined");
-    if (hpFraction <= 0) tentEl.classList.add("ruined");
-    else if (hpFraction <= 0.35) tentEl.classList.add("dmg2");
-    else if (hpFraction <= 0.7) tentEl.classList.add("dmg1");
-  }
+  if (!img) return;
+  img.src = A("base/Base_" + side + "_" + basePhaseFor(hpFraction) + ".png");
 }
 function renderFood() {
   el("food-num").textContent = Math.floor(battle.food);
@@ -2033,7 +2078,7 @@ function endBattle(won) {
   const enemyHpPct = Math.round((battle.enemyHp / battle.enemyHpMax) * 100);
 
   if (!won) {
-    el("result-icon").textContent = "💀";
+    el("result-icon").innerHTML = resultIconImg("Skull_1");
     el("result-title").textContent = "Поражение";
     el("result-title").style.color = "var(--bad)";
     el("result-stats").innerHTML =
@@ -2046,11 +2091,11 @@ function endBattle(won) {
     primaryBtn.style.color = "#fff";
     primaryBtn.onclick = () => { const lvl = battle.levelIndex; stopBattle(); startBattle(lvl); };
   } else if (!isLastLevel) {
-    el("result-icon").textContent = "🎉";
+    el("result-icon").innerHTML = resultIconImg("Cup_1");
     el("result-title").textContent = "Победа!";
     el("result-title").style.color = "var(--accent)";
     el("result-stats").innerHTML =
-      makeStatBlock(coinImg(22) + " +" + levelBonus, "бонус") +
+      makeStatBlock("+" + levelBonus, coinImg(47) + " бонус") +
       '<div style="width:1px;background:#ffffff20;"></div>' +
       makeStatBlock(hpPct + "%", "база цела");
     el("result-sub").textContent = "Уровень " + (battle.levelIndex + 1) + " пройден.";
@@ -2059,7 +2104,7 @@ function endBattle(won) {
     primaryBtn.style.color = "#2a2010";
     primaryBtn.onclick = () => { const next = battle.levelIndex + 1; stopBattle(); startBattle(next); };
   } else if (nextEpochKey) {
-    el("result-icon").textContent = "🏆";
+    el("result-icon").innerHTML = resultIconImg("Cup_1");
     el("result-title").textContent = "Эпоха пройдена!";
     el("result-title").style.color = "var(--accent)";
     el("result-stats").innerHTML = makeStatBlock(EPOCHS[nextEpochKey].tabIcon + " " + EPOCHS[nextEpochKey].name, "следующая эпоха");
@@ -2074,7 +2119,7 @@ function endBattle(won) {
       showScreen("screen-levels");
     };
   } else {
-    el("result-icon").textContent = "🏆";
+    el("result-icon").innerHTML = resultIconImg("Cup_1");
     el("result-title").textContent = "Всё пройдено!";
     el("result-title").style.color = "var(--accent)";
     el("result-stats").innerHTML = makeStatBlock("🎊", "ты лучший");
@@ -2169,11 +2214,12 @@ if (window.Telegram && window.Telegram.WebApp) {
 applyViewportHeight();
 window.addEventListener("resize", applyViewportHeight);
 
-// Preload фона — чтобы не грузился во время боя
-(function() { const img = new Image(); img.src = "assets/Background_2.png"; })();
+// Прелоад фона убран - логика загрузки теперь через заставку (см. showSplash)
 
-renderMenu();
-attemptHardRewardPayout();
+showSplash(preloadImages([A("backgrounds/Menu.png"), "assets/shared/splash.png"])).then(() => {
+  renderMenu();
+  attemptHardRewardPayout();
+});
 
 </script>
 </body>
