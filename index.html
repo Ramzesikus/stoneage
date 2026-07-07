@@ -396,33 +396,42 @@
         <div id="menu-secondary-row">
           <button class="menu-sec-btn" id="btn-reset-progress">
             <span class="sec-icon">↺</span>
-            <span>Сброс</span>
+            <span id="btn-reset-progress-label">Сброс</span>
           </button>
           <button class="menu-sec-btn" id="btn-go-shop">
             <span class="sec-icon">🛒</span>
-            <span>Магазин</span>
+            <span id="btn-go-shop-label">Магазин</span>
           </button>
+        </div>
+        <!-- ВРЕМЕННО: переключатель языка для теста перевода, до готовности
+             панели настроек (см. обсуждение нижней навигации) — убрать
+             отсюда и перенести в Настройки, когда та будет готова. -->
+        <div id="temp-lang-row" style="display:flex; gap:6px; margin-top:8px;">
+          <button class="menu-sec-btn temp-lang-btn" data-lang="ru" style="flex:1;font-size:13px;">RU</button>
+          <button class="menu-sec-btn temp-lang-btn" data-lang="en" style="flex:1;font-size:13px;">EN</button>
+          <button class="menu-sec-btn temp-lang-btn" data-lang="zh" style="flex:1;font-size:13px;">中文</button>
+          <button class="menu-sec-btn temp-lang-btn" data-lang="es" style="flex:1;font-size:13px;">ES</button>
         </div>
       </div>
       <div id="menu-unit-legend" style="display:none;"></div>
     </div>
     <div id="menu-footer-fixed">
-      <button class="menu-btn" id="btn-go-levels">В бой! <span class="gold" id="menu-gold" style="display:none;"></span></button>
+      <button class="menu-btn" id="btn-go-levels"><span id="btn-go-levels-label">В бой!</span> <span class="gold" id="menu-gold" style="display:none;"></span></button>
     </div>
   </div>
 
   <div class="screen" id="screen-levels">
-    <h2>Выбор уровня</h2>
+    <h2 id="levels-title">Выбор уровня</h2>
     <div class="epoch-tabs" id="epoch-tabs-levels"></div>
     <div class="level-row" id="level-row"></div>
-    <div class="back-link" data-back="menu">‹ В меню</div>
+    <div class="back-link" data-back="menu" id="levels-back-link">‹ В меню</div>
   </div>
 
   <div class="screen" id="screen-shop">
     <div class="shop-sticky-top">
       <div class="shop-header-row">
-        <h2 style="margin:6px 0;">Магазин</h2>
-        <span class="shop-back-btn" data-back="menu">‹ В меню</span>
+        <h2 style="margin:6px 0;" id="shop-title">Магазин</h2>
+        <span class="shop-back-btn" data-back="menu" id="shop-back-link">‹ В меню</span>
       </div>
       <div class="epoch-tabs" id="epoch-tabs-shop" style="margin-bottom:0;"></div>
       <div class="shop-gold" id="shop-gold-label" style="margin-bottom:0;"></div>
@@ -439,7 +448,7 @@
 
       <div id="battle-top">
         <div class="base-hp-wrap">
-          <div class="base-hp-label">Твоя база</div>
+          <div class="base-hp-label" id="battle-base-label-player">Твоя база</div>
           <div class="base-hp-track"><div class="base-hp-fill player" id="hp-player"></div></div>
         </div>
         <div>
@@ -447,7 +456,7 @@
           <div id="battle-gold">🪙 0</div>
         </div>
         <div class="base-hp-wrap">
-          <div class="base-hp-label" style="text-align:right;">Вражеская база</div>
+          <div class="base-hp-label" style="text-align:right;" id="battle-base-label-enemy">Вражеская база</div>
           <div class="base-hp-track"><div class="base-hp-fill enemy" id="hp-enemy"></div></div>
         </div>
       </div>
@@ -472,7 +481,7 @@
         <div style="display:flex; flex-direction:column; gap:8px; width:100%; max-width:280px;margin-top:8px;">
           <button class="result-btn" id="result-btn-primary" style="font-size:18px;padding:14px;"></button>
           <div style="display:flex;gap:8px;">
-            <button class="result-btn result-btn-secondary" id="result-btn-shop" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:12px 8px;"><span style="font-size:28px;">🛒</span> Магазин</button>
+            <button class="result-btn result-btn-secondary" id="result-btn-shop" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:12px 8px;"><span style="font-size:28px;">🛒</span> <span id="result-btn-shop-label">Магазин</span></button>
             <button class="result-btn result-btn-secondary" id="result-btn-menu" style="flex:1;padding:12px 8px;">‹ В меню</button>
           </div>
         </div>
@@ -748,6 +757,57 @@ function applyEpoch(key) {
     defense:  A("icons/Upgrade_5.png", key),
   };
   applyEpochBackgrounds(key);
+
+  // Имена/описания юнитов и апгрейдов — на текущем языке (SAVE.language).
+  // Заодно перевызывается при смене языка (см. applyLanguage), не только
+  // при смене эпохи — единая точка обновления текста в этих объектах.
+  UNIT_ORDER.forEach((k) => {
+    UNIT_DEFS[k].name = t("unit." + k + ".name");
+    UNIT_LEGEND_TEXT[k] = t("unit." + k + ".desc");
+  });
+  for (const k in UPGRADE_DEFS) {
+    UPGRADE_DEFS[k].name = t("upgrade." + k + ".name");
+    UPGRADE_DEFS[k].desc = t("upgrade." + k + ".desc");
+  }
+  for (const k in STARS_UPGRADE_DEFS) {
+    STARS_UPGRADE_DEFS[k].name = t("upgrade." + k + ".name");
+    STARS_UPGRADE_DEFS[k].desc = t("upgrade." + k + ".desc");
+  }
+}
+
+/* Обновляет статичные текстовые узлы разметки (те, что не пересобираются
+   каждый раз через render*()) — вызывается при старте и при смене языка. */
+function refreshStaticUiText() {
+  el("menu-tab-hq").textContent = t("menu.tab.hq");
+  el("menu-tab-units").textContent = t("menu.tab.units");
+  el("btn-reset-progress-label").textContent = t("menu.reset");
+  el("btn-go-shop-label").textContent = t("menu.shop");
+  el("btn-go-levels-label").textContent = t("menu.play");
+  el("levels-title").textContent = t("levels.title");
+  el("levels-back-link").textContent = t("nav.backToMenu");
+  el("shop-title").textContent = t("shop.title");
+  el("shop-back-link").textContent = t("nav.backToMenu");
+  el("battle-base-label-player").textContent = t("battle.yourBase");
+  el("battle-base-label-enemy").textContent = t("battle.enemyBase");
+  el("result-btn-shop-label").textContent = t("result.shop");
+  el("result-btn-menu").textContent = t("nav.backToMenu");
+}
+
+/* Смена языка интерфейса — сохраняет выбор и перерисовывает всё видимое.
+   Переиспользует applyEpoch() (он же обновляет имена/описания юнитов и
+   апгрейдов на нужном языке) плюс статичные узлы разметки. Экран боя не
+   трогаем на лету — язык подхватится с начала следующего боя, чтобы не
+   ломать уже идущую анимацию/состояние посреди боя. */
+function applyLanguage(lang) {
+  if (!SUPPORTED_LANGUAGES.includes(lang)) return;
+  SAVE.language = lang;
+  writeSave(SAVE);
+  applyEpoch(SAVE.currentEpoch);
+  refreshStaticUiText();
+  // Перерисовываем тот экран, что сейчас реально виден
+  if (el("screen-menu").classList.contains("active")) renderMenu();
+  else if (el("screen-levels").classList.contains("active")) renderLevels();
+  else if (el("screen-shop").classList.contains("active")) renderShop();
 }
 
 /* Фоны меню/магазина/боя — по эпохе. */
@@ -756,7 +816,149 @@ function applyEpochBackgrounds(key) {
   el("screen-shop").style.backgroundImage = 'url(' + A("backgrounds/Shop.png", key) + ')';
   el("lane-wrap").style.setProperty('--fight-bg', 'url(' + A("backgrounds/Fight.png", key) + ')');
   const foodIconName = key === "stone" ? "Food_2" : "Food_1"; // Каменный век — новая иконка еды по запросу
-  el("food-icon-label").innerHTML = '<img src="' + A("ui/" + foodIconName + ".png", key) + '" style="width:40px;height:40px;object-fit:contain;vertical-align:middle;"> Еда';
+  el("food-icon-label").innerHTML = '<img src="' + A("ui/" + foodIconName + ".png", key) + '" style="width:40px;height:40px;object-fit:contain;vertical-align:middle;"> ' + t("battle.food");
+}
+
+/* ============ Локализация ============
+   Схема ключ-мажорная (ключ → переводы на всех языках), а не язык-мажорная —
+   так проще визуально сверить все 4 перевода одной строки разом и заметить
+   забытый/неполный перевод. t(key, vars) возвращает строку на текущем языке
+   (SAVE.language), с подстановкой {var} из vars. Если для ключа нет перевода
+   на нужный язык — это ЯВНО видно в интерфейсе (маркер "[!]" + русский текст
+   как понятный фолбэк), не откатываемся молча — так проще заметить пробел
+   при добавлении новых строк в будущем. */
+const SUPPORTED_LANGUAGES = ["ru", "en", "zh", "es"];
+
+const STRINGS = {
+  "epoch.stone":    { ru: "Каменный век", en: "Stone Age", zh: "石器时代", es: "Edad de Piedra" },
+  "epoch.medieval": { ru: "Средневековье", en: "Middle Ages", zh: "中世纪", es: "Edad Media" },
+
+  "menu.tab.hq":    { ru: "Штаб", en: "HQ", zh: "总部", es: "Cuartel" },
+  "menu.tab.units": { ru: "Воины", en: "Warriors", zh: "战士", es: "Guerreros" },
+  "menu.reset":     { ru: "Сброс", en: "Reset", zh: "重置", es: "Reiniciar" },
+  "menu.shop":      { ru: "Магазин", en: "Shop", zh: "商店", es: "Tienda" },
+  "menu.play":      { ru: "В бой!", en: "Fight!", zh: "开战！", es: "¡A luchar!" },
+  "menu.resetConfirm": {
+    ru: "Точно сбросить весь прогресс — уровни, золото, прокачку? Покупки за Stars останутся. Это нельзя отменить.",
+    en: "Reset all progress — levels, gold, upgrades? Star purchases will stay. This can't be undone.",
+    zh: "确定要重置所有进度吗——关卡、金币、升级？Stars 购买记录将保留。此操作无法撤销。",
+    es: "¿Reiniciar todo el progreso — niveles, oro, mejoras? Las compras con Stars se mantendrán. Esto no se puede deshacer.",
+  },
+
+  "levels.title": { ru: "Выбор уровня", en: "Select Level", zh: "选择关卡", es: "Elegir nivel" },
+  "nav.backToMenu": { ru: "‹ В меню", en: "‹ Menu", zh: "‹ 菜单", es: "‹ Menú" },
+
+  "shop.title": { ru: "Магазин", en: "Shop", zh: "商店", es: "Tienda" },
+  "shop.max":   { ru: "МАКС", en: "MAX", zh: "已满级", es: "MÁX" },
+  "shop.unlocked":     { ru: "Открыт", en: "Unlocked", zh: "已解锁", es: "Desbloqueado" },
+  "shop.unlockNewUnit": { ru: "Открыть нового юнита", en: "Unlock new unit", zh: "解锁新兵种", es: "Desbloquear nueva unidad" },
+  "shop.lvlSuffix": { ru: "уровень {n}", en: "level {n}", zh: "等级{n}", es: "nivel {n}" },
+
+  "battle.yourBase":  { ru: "Твоя база", en: "Your Base", zh: "我方基地", es: "Tu base" },
+  "battle.enemyBase": { ru: "Вражеская база", en: "Enemy Base", zh: "敌方基地", es: "Base enemiga" },
+  "battle.level":     { ru: "Уровень {n}", en: "Level {n}", zh: "第{n}关", es: "Nivel {n}" },
+  "battle.food":      { ru: "Еда", en: "Food", zh: "食物", es: "Comida" },
+
+  "result.defeat":     { ru: "Поражение", en: "Defeat", zh: "战败", es: "Derrota" },
+  "result.victory":    { ru: "Победа!", en: "Victory!", zh: "胜利！", es: "¡Victoria!" },
+  "result.epochDone":  { ru: "Эпоха пройдена!", en: "Epoch complete!", zh: "时代通关！", es: "¡Época completada!" },
+  "result.allDone":    { ru: "Всё пройдено!", en: "All complete!", zh: "全部通关！", es: "¡Todo completado!" },
+  "result.enemyBaseHp": { ru: "жизни вражеской базы", en: "enemy base HP", zh: "敌方基地生命值", es: "vida de la base enemiga" },
+  "result.ownBaseHp":   { ru: "жизни своей базы", en: "your base HP", zh: "我方基地生命值", es: "vida de tu base" },
+  "result.earned":      { ru: "заработано", en: "earned", zh: "获得金币", es: "ganado" },
+  "result.subDefeat":   { ru: "Прокачайся в магазине и попробуй снова.", en: "Upgrade in the shop and try again.", zh: "去商店升级后再来一次。", es: "Mejora en la tienda y vuelve a intentarlo." },
+  "result.subVictory":  { ru: "Уровень {n} пройден.", en: "Level {n} complete.", zh: "第{n}关通关。", es: "Nivel {n} superado." },
+  "result.subEpochDone": { ru: "{epoch} завоёван. Дальше — {next}.", en: "{epoch} conquered. Next — {next}.", zh: "{epoch}已征服。下一站——{next}。", es: "{epoch} conquistada. Sigue — {next}." },
+  "result.subAllDone":  { ru: "Все эпохи завоёваны. Дальше — новые обновления.", en: "All epochs conquered. More updates are coming.", zh: "所有时代均已征服。敬请期待更新。", es: "Todas las épocas conquistadas. Próximamente más novedades." },
+  "result.retry":     { ru: "Повторить", en: "Retry", zh: "重试", es: "Reintentar" },
+  "result.next":      { ru: "Дальше →", en: "Next →", zh: "下一关 →", es: "Siguiente →" },
+  "result.nextEpoch": { ru: "Следующая эпоха →", en: "Next epoch →", zh: "下一时代 →", es: "Siguiente época →" },
+  "result.toMenu":    { ru: "В меню", en: "Menu", zh: "菜单", es: "Menú" },
+  "result.shop":      { ru: "Магазин", en: "Shop", zh: "商店", es: "Tienda" },
+
+  "stat.hp":    { ru: "Здоровье", en: "Health", zh: "生命值", es: "Vida" },
+  "stat.atk":   { ru: "Урон", en: "Attack", zh: "攻击", es: "Ataque" },
+  "stat.speed": { ru: "Скорость", en: "Speed", zh: "速度", es: "Velocidad" },
+  "stat.range": { ru: "Дальность", en: "Range", zh: "射程", es: "Alcance" },
+  "stat.crit":  { ru: "крит", en: "crit", zh: "暴击", es: "crítico" },
+
+  "stars.onlyInTelegram": {
+    ru: "Покупка за Telegram Stars работает только внутри приложения Telegram.",
+    en: "Buying with Telegram Stars only works inside the Telegram app.",
+    zh: "使用 Telegram Stars 购买仅在 Telegram 应用内可用。",
+    es: "La compra con Telegram Stars solo funciona dentro de la app de Telegram.",
+  },
+  "stars.invoiceError": { ru: "Не удалось создать счёт на оплату. Ошибка: {err}", en: "Couldn't create the invoice. Error: {err}", zh: "无法创建支付订单。错误：{err}", es: "No se pudo crear la factura. Error: {err}" },
+  "stars.networkError": { ru: "Ошибка сети при создании счёта: {err}", en: "Network error while creating the invoice: {err}", zh: "创建订单时发生网络错误：{err}", es: "Error de red al crear la factura: {err}" },
+  "stars.notEnough": { ru: "Не хватает 🪙 {deficit}.\nДокупить {coins} монет за ⭐{stars}?", en: "Missing 🪙 {deficit}.\nBuy {coins} coins for ⭐{stars}?", zh: "还差 🪙 {deficit}。\n花费 ⭐{stars} 购买 {coins} 枚金币？", es: "Faltan 🪙 {deficit}.\n¿Comprar {coins} monedas por ⭐{stars}?" },
+  "stars.coinsTitle": { ru: "Монеты", en: "Coins", zh: "金币", es: "Monedas" },
+  "stars.coinsDesc":  { ru: "{coins} монет для покупки в магазине", en: "{coins} coins for shop purchases", zh: "用于商店购买的 {coins} 枚金币", es: "{coins} monedas para compras en la tienda" },
+
+  "unit.infantry.name": { ru: "Дикарь с дубиной", en: "Clubman", zh: "棍棒野人", es: "Salvaje con garrote" },
+  "unit.infantry.desc": { ru: "ближний бой, дёшево, в больших количествах", en: "melee, cheap, good in numbers", zh: "近战单位，便宜，适合大量投入", es: "cuerpo a cuerpo, barato, útil en cantidad" },
+  "unit.archer.name": { ru: "Лучник", en: "Archer", zh: "弓箭手", es: "Arquero" },
+  "unit.archer.desc": { ru: "бьёт землю и воздух, но хрупкий", en: "hits ground and air, but fragile", zh: "可攻击地面和空中单位，但很脆弱", es: "ataca tierra y aire, pero es frágil" },
+  "unit.mammoth.name": { ru: "Мамонт с наездником", en: "Mammoth Rider", zh: "猛犸骑手", es: "Jinete de mamut" },
+  "unit.mammoth.desc": { ru: "танк: много HP, держит линию", en: "tank: high HP, holds the line", zh: "坦克单位：血量高，稳固前线", es: "tanque: mucha vida, aguanta la línea" },
+  "unit.flyer.name": { ru: "Птеродактиль с наездником", en: "Pterodactyl Rider", zh: "翼龙骑手", es: "Jinete de pterodáctilo" },
+  "unit.flyer.desc": { ru: "летает — достаёт лучник или другой птеродактиль", en: "flies — only archers or other flyers can hit it", zh: "飞行单位——只有弓箭手或其他飞行单位能命中", es: "vuela — solo un arquero u otro volador puede alcanzarlo" },
+
+  "unit.swordsman.name": { ru: "Меченосец", en: "Swordsman", zh: "剑士", es: "Espadachín" },
+  "unit.swordsman.desc": { ru: "ближний бой, дёшево, в больших количествах", en: "melee, cheap, good in numbers", zh: "近战单位，便宜，适合大量投入", es: "cuerpo a cuerpo, barato, útil en cantidad" },
+  "unit.crossbow.name": { ru: "Арбалетчик", en: "Crossbowman", zh: "弩手", es: "Ballestero" },
+  "unit.crossbow.desc": { ru: "бьёт землю и воздух, но хрупкий", en: "hits ground and air, but fragile", zh: "可攻击地面和空中单位，但很脆弱", es: "ataca tierra y aire, pero es frágil" },
+  "unit.knight.name": { ru: "Рыцарь на коне", en: "Mounted Knight", zh: "骑马骑士", es: "Caballero montado" },
+  "unit.knight.desc": { ru: "танк: много HP, держит линию", en: "tank: high HP, holds the line", zh: "坦克单位：血量高，稳固前线", es: "tanque: mucha vida, aguanta la línea" },
+  "unit.dragon.name": { ru: "Дракон с наездником", en: "Dragon Rider", zh: "龙骑士", es: "Jinete de dragón" },
+  "unit.dragon.desc": { ru: "летает — достаёт арбалетчик или другой дракон", en: "flies — only crossbowmen or other dragons can hit it", zh: "飞行单位——只有弩手或其他飞龙能命中", es: "vuela — solo un ballestero u otro dragón puede alcanzarlo" },
+
+  "upgrade.foodRate.name": { ru: "Еда", en: "Food", zh: "食物", es: "Comida" },
+  "upgrade.foodRate.desc": { ru: "+10% скорости накопления", en: "+10% food generation speed", zh: "食物积累速度 +10%", es: "+10% de velocidad de generación de comida" },
+  "upgrade.dmg.name": { ru: "Урон", en: "Damage", zh: "伤害", es: "Daño" },
+  "upgrade.dmg.desc": { ru: "+5% урона всех юнитов", en: "+5% damage for all units", zh: "全体单位伤害 +5%", es: "+5% de daño para todas las unidades" },
+  "upgrade.hp.name": { ru: "Здоровье", en: "Health", zh: "生命值", es: "Vida" },
+  "upgrade.hp.desc": { ru: "+5% HP всех юнитов", en: "+5% HP for all units", zh: "全体单位生命值 +5%", es: "+5% de vida para todas las unidades" },
+  "upgrade.baseHp.name": { ru: "Здоровье базы", en: "Base Health", zh: "基地生命值", es: "Vida de la base" },
+  "upgrade.baseHp.desc": { ru: "+20 HP базы", en: "+20 base HP", zh: "基地生命值 +20", es: "+20 de vida a la base" },
+  "upgrade.defense.name": { ru: "Защита базы", en: "Base Defense", zh: "基地防御", es: "Defensa de la base" },
+  "upgrade.defense.desc": { ru: "-4% входящего урона по твоей базе", en: "-4% incoming damage to your base", zh: "己方基地受到伤害 -4%", es: "-4% de daño recibido en tu base" },
+  "upgrade.unitSpeed.name": { ru: "Скорость", en: "Speed", zh: "速度", es: "Velocidad" },
+  "upgrade.unitSpeed.desc": { ru: "+10% скорости передвижения юнитов", en: "+10% unit movement speed", zh: "单位移动速度 +10%", es: "+10% de velocidad de movimiento de las unidades" },
+  "upgrade.startFood.name": { ru: "Запас еды", en: "Food Reserve", zh: "初始食物", es: "Reserva de comida" },
+  "upgrade.startFood.desc": { ru: "+15 еды в начале каждого боя за уровень", en: "+15 starting food per level, each battle", zh: "每级每场战斗开始时 +15 食物", es: "+15 de comida inicial por nivel en cada combate" },
+  "upgrade.crit.name": { ru: "Шанс крита", en: "Crit Chance", zh: "暴击几率", es: "Prob. de crítico" },
+  "upgrade.crit.desc": { ru: "+5% шанс удвоенного урона", en: "+5% chance of double damage", zh: "双倍伤害几率 +5%", es: "+5% de probabilidad de daño doble" },
+  "upgrade.bonusGold.name": { ru: "Много золота", en: "Bonus Gold", zh: "额外金币", es: "Oro extra" },
+  "upgrade.bonusGold.desc": { ru: "+15% золота за каждое убийство за уровень", en: "+15% gold per kill, per level", zh: "每级每次击杀金币 +15%", es: "+15% de oro por baja, por nivel" },
+};
+
+/* t(key, vars) — строка на текущем языке (SAVE.language), с подстановкой
+   {var} из vars. Если ключа нет вообще — предупреждение в консоль и сам
+   ключ (чтобы сразу было видно в интерфейсе, что забыли завести перевод).
+   Если ключ есть, но нет перевода на нужный язык — "[!]" + русский текст:
+   явный маркер прямо в интерфейсе, не тихий откат (см. решение по п.3). */
+function t(key, vars) {
+  const entry = STRINGS[key];
+  if (!entry) { console.warn("i18n: нет ключа", key); return key; }
+  let s = entry[SAVE.language];
+  if (s === undefined) s = "[!]" + (entry.ru !== undefined ? entry.ru : key);
+  if (vars) for (const k in vars) s = s.split("{" + k + "}").join(vars[k]);
+  return s;
+}
+
+/* Множественное число — правила разные по языкам (ru: 3 формы, en/es: 2,
+   zh: форм нет). Пока нигде в живом тексте не используется (нет строк с
+   счётчиком количества), но инфраструктура готова на будущее — key должен
+   указывать на массив из нужного числа форм на каждом языке. */
+const PLURAL_RULE = {
+  ru: (n) => (n % 10 === 1 && n % 100 !== 11) ? 0 : (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)) ? 1 : 2,
+  en: (n) => n === 1 ? 0 : 1,
+  es: (n) => n === 1 ? 0 : 1,
+  zh: () => 0,
+};
+function plural(n, forms) {
+  const idx = (PLURAL_RULE[SAVE.language] || PLURAL_RULE.ru)(n);
+  return (forms[idx] !== undefined ? forms[idx] : forms[forms.length - 1]).replace("{n}", n);
 }
 
 /* ============ Сохранение ============ */
@@ -780,6 +982,7 @@ function freshEpochState(epochKey) {
 const DEFAULT_SAVE = {
   gold: 0,
   currentEpoch: "stone",
+  language: "ru", // ru/en/zh/es — выбор языка интерфейса
 
   starsUpgrades: { startFood: 0, bonusGold: 0, unitSpeed: 0, crit: 0 },
   epochs: {
@@ -809,6 +1012,7 @@ function loadSave() {
     merged.gold = data.gold ?? 0;
     merged.difficulty = data.difficulty || "normal";
     merged.currentEpoch = data.currentEpoch || "stone";
+    merged.language = SUPPORTED_LANGUAGES.includes(data.language) ? data.language : "ru";
 
     merged.starsUpgrades = Object.assign({}, DEFAULT_SAVE.starsUpgrades, data.starsUpgrades);
     // обратная совместимость: раньше это были true/false, теперь уровень 0-5
@@ -869,6 +1073,7 @@ let SAVE = loadSave();
 writeSave(SAVE);
 /* ===== КОНЕЦ ВРЕМЕННОГО ДЕБАГА ===== */
 applyEpoch(SAVE.currentEpoch);
+refreshStaticUiText();
 writeSave(SAVE); // сразу фиксируем уже мигрированный/дефолтный сейв в новом формате
 
 /* EP() — состояние ТЕКУЩЕЙ (или явно указанной) эпохи: уровни, прокачки, разблокировки */
@@ -1063,7 +1268,7 @@ function renderActiveMenuTab() {
 
 function renderMenu() {
   el("menu-gold-display").innerHTML = coinImg(30) + " " + SAVE.gold;
-  el("menu-title").textContent = EPOCHS[SAVE.currentEpoch].tabIcon + " " + EPOCHS[SAVE.currentEpoch].name;
+  el("menu-title").textContent = EPOCHS[SAVE.currentEpoch].tabIcon + " " + t("epoch." + SAVE.currentEpoch);
   renderEpochTabs("epoch-tabs-menu", renderMenu);
   renderActiveMenuTab();
 }
@@ -1105,7 +1310,7 @@ function renderUnitCards(containerId) {
     const atk = Math.round(def.atk * dmgMul());
     const speed = +(def.speed * unitSpeedMul()).toFixed(2);
     const cc = Math.round(critChance() * 100);
-    const critLine = cc > 0 ? statLine("🎯крит", cc + "%") : "";
+    const critLine = cc > 0 ? statLine("🎯" + t("stat.crit"), cc + "%") : "";
     const card = document.createElement("div");
     card.className = "unit-card";
     const portraitHeight = portraitHeights[key];
@@ -1134,7 +1339,7 @@ function renderUnitCards(containerId) {
   const legend = document.createElement("div");
   legend.className = "stat-legend-grid";
   legend.innerHTML =
-    '<div>❤️ Здоровье</div><div>⚔️ Урон</div><div>👟 Скорость</div><div>📏 Дальность</div>';
+    '<div>❤️ ' + t("stat.hp") + '</div><div>⚔️ ' + t("stat.atk") + '</div><div>👟 ' + t("stat.speed") + '</div><div>📏 ' + t("stat.range") + '</div>';
   container.appendChild(legend);
 
   const spacerBottom = document.createElement("div");
@@ -1145,14 +1350,22 @@ el("btn-go-levels").addEventListener("click", () => { renderLevels(); showScreen
 el("btn-go-shop").addEventListener("click", () => { renderShop(); showScreen("screen-shop"); });
 
 el("btn-reset-progress").addEventListener("click", () => {
-  const ok = window.confirm("Точно сбросить весь прогресс — уровни, золото, прокачку? Покупки за Stars останутся. Это нельзя отменить.");
+  const ok = window.confirm(t("menu.resetConfirm"));
   if (!ok) return;
   const keepStars = SAVE.starsUpgrades;
+  const keepLanguage = SAVE.language;
   SAVE = deepClone(DEFAULT_SAVE);
   SAVE.starsUpgrades = keepStars;
+  SAVE.language = keepLanguage;
   applyEpoch(SAVE.currentEpoch);
+  refreshStaticUiText();
   writeSave(SAVE);
   renderMenu();
+});
+
+// ВРЕМЕННО: см. комментарий у #temp-lang-row в разметке.
+document.querySelectorAll(".temp-lang-btn").forEach((btn) => {
+  btn.addEventListener("click", () => applyLanguage(btn.dataset.lang));
 });
 
 /* Звёзды за уровень — по % оставшегося HP своей базы на момент победы
@@ -1234,7 +1447,7 @@ function renderLevels() {
    topUpWithStars и рекламных апгрейдах. Логирует любой статус для диагностики. */
 function openStarsInvoice({ title, description, payload, amount, onPaid }) {
   if (!window.Telegram || !window.Telegram.WebApp || !window.Telegram.WebApp.openInvoice) {
-    window.alert("Покупка за Telegram Stars работает только внутри приложения Telegram.");
+    window.alert(t("stars.onlyInTelegram"));
     return;
   }
   fetch("https://api.telegram.org/bot" + ANALYTICS_BOT_TOKEN + "/createInvoiceLink", {
@@ -1245,13 +1458,13 @@ function openStarsInvoice({ title, description, payload, amount, onPaid }) {
       prices: [{ label: title, amount }],
     }),
   }).then((r) => r.json()).then((data) => {
-    if (!data.ok) { window.alert("Не удалось создать счёт на оплату. Ошибка: " + (data.description || "?")); return; }
+    if (!data.ok) { window.alert(t("stars.invoiceError", { err: data.description || "?" })); return; }
     window.Telegram.WebApp.openInvoice(data.result, (status) => {
       // Диагностика: логируем любой статус, не только "paid"
       sendAnalytics("⭐ Stars invoice статус: " + status + " | payload: " + payload + " | " + getPlayerLabel());
       if (status === "paid") onPaid();
     });
-  }).catch((e) => { window.alert("Ошибка сети при создании счёта: " + e.message); });
+  }).catch((e) => { window.alert(t("stars.networkError", { err: e.message })); });
 }
 
 function buyWithStars(key, def) {
@@ -1278,14 +1491,11 @@ const STARS_TO_COINS_RATE = 10;
 function topUpWithStars(deficit, onSuccess) {
   const stars = Math.ceil(deficit / STARS_TO_COINS_RATE);
   const coins = stars * STARS_TO_COINS_RATE;
-  const ok = window.confirm(
-    "Не хватает 🪙 " + deficit + ".\n" +
-    "Докупить " + coins + " монет за ⭐" + stars + "?"
-  );
+  const ok = window.confirm(t("stars.notEnough", { deficit, coins, stars }));
   if (!ok) return;
   openStarsInvoice({
-    title: "Монеты",
-    description: coins + " монет для покупки в магазине",
+    title: t("stars.coinsTitle"),
+    description: t("stars.coinsDesc", { coins }),
     payload: "topup_coins:" + coins,
     amount: stars,
     onPaid: () => {
@@ -1322,12 +1532,12 @@ function renderShop() {
     const upgradeIcon = UPGRADE_ICON_SRCS[key] ? iconTag(UPGRADE_ICON_SRCS[key], 54) : def.icon;
     row.innerHTML =
       '<div class="icon">' + upgradeIcon + '</div>' +
-      '<div class="info"><div class="name">' + def.name + ' · уровень ' + lvl + '</div>' +
+      '<div class="info"><div class="name">' + def.name + ' · ' + t("shop.lvlSuffix", { n: lvl }) + '</div>' +
       '<div class="desc">' + def.desc + '<br>' +
       '<span style="color:var(--text-dim);">' + upgradeDisplayValue(key, lvl) + '</span>' +
       (maxed ? '' : ' <span style="color:var(--accent);">→ ' + upgradeDisplayValue(key, lvl + 1) + '</span>') +
       '</div></div>' +
-      '<div class="price">' + (maxed ? "МАКС" : coinImg(20) + " " + cost) + '</div>';
+      '<div class="price">' + (maxed ? t("shop.max") : coinImg(20) + " " + cost) + '</div>';
     if (!maxed) {
       row.addEventListener("click", () => {
         if (SAVE.gold < cost) {
@@ -1362,7 +1572,7 @@ function renderShop() {
     row.innerHTML =
       '<div class="icon">' + unitIcon + '</div>' +
       '<div class="info"><div class="name">' + def.name + '</div>' +
-      '<div class="desc">' + (unlocked ? "Открыт" : "Открыть нового юнита") + '</div></div>' +
+      '<div class="desc">' + (unlocked ? t("shop.unlocked") : t("shop.unlockNewUnit")) + '</div></div>' +
       '<div class="price">' + (unlocked ? "✅" : coinImg(20) + " " + cost) + '</div>';
     if (!unlocked) {
       row.addEventListener("click", () => {
@@ -1397,9 +1607,9 @@ function renderShop() {
     row.className = "shop-row stars-row" + (maxed ? " disabled" : "");
     row.innerHTML =
       '<div class="icon">' + def.icon + '</div>' +
-      '<div class="info"><div class="name">' + def.name + ' · уровень ' + lvl + '</div>' +
+      '<div class="info"><div class="name">' + def.name + ' · ' + t("shop.lvlSuffix", { n: lvl }) + '</div>' +
       '<div class="desc">' + def.desc + '</div></div>' +
-      '<div class="price">' + (maxed ? "МАКС" : "⭐ " + cost) + '</div>';
+      '<div class="price">' + (maxed ? t("shop.max") : "⭐ " + cost) + '</div>';
     if (!maxed) row.addEventListener("click", () => buyWithStars(key, def));
     list.appendChild(row);
   });
@@ -1453,7 +1663,7 @@ function startBattleInner(levelIndex) {
   el("battle-result").classList.remove("show");
   el("battle-bottom").style.display = "";
   el("kill-values").style.display = "";
-  el("battle-level-label").textContent = "Уровень " + (levelIndex + 1);
+  el("battle-level-label").textContent = t("battle.level", { n: levelIndex + 1 });
   updateGoldDisplay();
   el("lane-wrap").querySelectorAll(".unit, .coin-fly, .projectile").forEach((n) => n.remove());
   activeArrowEls.length = 0;
@@ -2207,40 +2417,40 @@ function endBattle(won) {
 
   if (!won) {
     el("result-icon").innerHTML = resultIconImg("Skull_1");
-    el("result-title").textContent = "Поражение";
+    el("result-title").textContent = t("result.defeat");
     el("result-title").style.color = "var(--bad)";
     el("result-stats").innerHTML =
-      makeStatBlock(enemyHpPct + "%", "жизни вражеской базы") +
+      makeStatBlock(enemyHpPct + "%", t("result.enemyBaseHp")) +
       '<div style="width:1px;background:#ffffff20;"></div>' +
-      makeStatBlock(coinImg(34) + " +" + totalEarned, "заработано");
-    el("result-sub").textContent = "Прокачайся в магазине и попробуй снова.";
-    primaryBtn.textContent = "Повторить";
+      makeStatBlock(coinImg(34) + " +" + totalEarned, t("result.earned"));
+    el("result-sub").textContent = t("result.subDefeat");
+    primaryBtn.textContent = t("result.retry");
     primaryBtn.style.background = "var(--bad)";
     primaryBtn.style.color = "#fff";
     primaryBtn.onclick = () => { const lvl = battle.levelIndex; stopBattle(); startBattle(lvl); };
   } else if (!isLastLevel) {
     el("result-icon").innerHTML = resultIconImg(winCupName);
-    el("result-title").textContent = "Победа!";
+    el("result-title").textContent = t("result.victory");
     el("result-title").style.color = "var(--accent)";
     el("result-stats").innerHTML =
-      makeStatBlock(coinImg(34) + " +" + totalEarned, "заработано") +
+      makeStatBlock(coinImg(34) + " +" + totalEarned, t("result.earned")) +
       '<div style="width:1px;background:#ffffff20;"></div>' +
-      makeStatBlock(hpPct + "%", "жизни своей базы");
-    el("result-sub").textContent = "Уровень " + (battle.levelIndex + 1) + " пройден.";
-    primaryBtn.textContent = "Дальше →";
+      makeStatBlock(hpPct + "%", t("result.ownBaseHp"));
+    el("result-sub").textContent = t("result.subVictory", { n: battle.levelIndex + 1 });
+    primaryBtn.textContent = t("result.next");
     primaryBtn.style.background = "var(--accent)";
     primaryBtn.style.color = "#2a2010";
     primaryBtn.onclick = () => { const next = battle.levelIndex + 1; stopBattle(); startBattle(next); };
   } else if (nextEpochKey) {
     el("result-icon").innerHTML = resultIconImg(winCupName);
-    el("result-title").textContent = "Эпоха пройдена!";
+    el("result-title").textContent = t("result.epochDone");
     el("result-title").style.color = "var(--accent)";
     el("result-stats").innerHTML =
-      makeStatBlock(coinImg(34) + " +" + totalEarned, "заработано") +
+      makeStatBlock(coinImg(34) + " +" + totalEarned, t("result.earned")) +
       '<div style="width:1px;background:#ffffff20;"></div>' +
-      makeStatBlock(hpPct + "%", "жизни своей базы");
-    el("result-sub").textContent = EPOCHS[SAVE.currentEpoch].name + " завоёван. Дальше — " + EPOCHS[nextEpochKey].name + ".";
-    primaryBtn.textContent = "Следующая эпоха →";
+      makeStatBlock(hpPct + "%", t("result.ownBaseHp"));
+    el("result-sub").textContent = t("result.subEpochDone", { epoch: t("epoch." + SAVE.currentEpoch), next: t("epoch." + nextEpochKey) });
+    primaryBtn.textContent = t("result.nextEpoch");
     primaryBtn.style.background = "var(--accent)";
     primaryBtn.style.color = "#2a2010";
     primaryBtn.onclick = () => {
@@ -2251,14 +2461,14 @@ function endBattle(won) {
     };
   } else {
     el("result-icon").innerHTML = resultIconImg(winCupName);
-    el("result-title").textContent = "Всё пройдено!";
+    el("result-title").textContent = t("result.allDone");
     el("result-title").style.color = "var(--accent)";
     el("result-stats").innerHTML =
-      makeStatBlock(coinImg(34) + " +" + totalEarned, "заработано") +
+      makeStatBlock(coinImg(34) + " +" + totalEarned, t("result.earned")) +
       '<div style="width:1px;background:#ffffff20;"></div>' +
-      makeStatBlock(hpPct + "%", "жизни своей базы");
-    el("result-sub").textContent = "Все эпохи завоёваны. Дальше — новые обновления.";
-    primaryBtn.textContent = "В меню";
+      makeStatBlock(hpPct + "%", t("result.ownBaseHp"));
+    el("result-sub").textContent = t("result.subAllDone");
+    primaryBtn.textContent = t("result.toMenu");
     primaryBtn.style.background = "var(--accent)";
     primaryBtn.style.color = "#2a2010";
     primaryBtn.onclick = () => { stopBattle(); renderMenu(); showScreen("screen-menu"); };
