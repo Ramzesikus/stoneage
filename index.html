@@ -205,8 +205,15 @@
   #lane-wrap::before {
     content: ""; position: absolute; inset: 0; z-index: 0;
     background-image: var(--fight-bg);
-    background-size: auto 135%; background-position: center bottom; background-repeat: no-repeat;
+    background-size: auto 100%; background-position: center center; background-repeat: no-repeat;
+    background-color: var(--bg); /* letterbox по бокам, если картинка уже экрана */
     filter: brightness(1.18) saturate(1.05);
+    /* Было auto 135% — зум специально был подобран под калибровку дорожек/
+       баз под текущий Fight.png (см. STONEAGE_PROJECT_CONTEXT, открытый
+       вопрос №1). Сейчас поставил 100% по прямому запросу — ЗЕМЛЯ/ДОРОЖКА
+       на скриншоте может визуально сместиться относительно юнитов и базы,
+       это не проверено на устройстве. Если собьётся — нужен новый Fight.png
+       под пропорции экрана, а не возврат зума. */
   }
   #hills-svg { display: none; }
   .unit { z-index: 1; }
@@ -341,12 +348,12 @@
   #pause-overlay-icon.play-fade { opacity: 0; transition: opacity 1.0s ease; }
 
   #splash-screen {
-    position: fixed; inset: 0; z-index: 1000;
+    position: fixed; inset: 0; z-index: 1000; overflow: hidden;
     display: none; align-items: center; justify-content: center;
     background: #000;
   }
   #splash-screen.show { display: flex; }
-  #splash-screen img { width: 100%; height: 100%; object-fit: cover; }
+  #splash-screen img { height: 100%; width: auto; } /* было width:100%+cover — всегда обрезало по одной оси без полей */
   #splash-spinner {
     position: absolute; bottom: 14%; left: 50%; transform: translateX(-50%);
     width: 40px; height: 40px; border-radius: 50%;
@@ -459,7 +466,7 @@
       <div id="battle-result">
         <div id="result-icon" style="font-size:52px;line-height:1;margin-bottom:4px;"></div>
         <h2 id="result-title" style="margin:0 0 4px;"></h2>
-        <div id="result-stars" style="font-size:26px;line-height:1;margin-bottom:2px;letter-spacing:2px;"></div>
+        <div id="result-stars" style="font-size:44px;line-height:1;margin-bottom:2px;letter-spacing:2px;"></div>
         <div id="result-stats" style="display:flex;gap:16px;margin:10px 0 4px;"></div>
         <p id="result-sub" style="font-size:13px;"></p>
         <div style="display:flex; flex-direction:column; gap:8px; width:100%; max-width:280px;margin-top:8px;">
@@ -845,6 +852,22 @@ const el = (id) => document.getElementById(id);
 let UPGRADE_ICON_SRCS = {}; // заполняется в applyEpoch() ниже
 
 let SAVE = loadSave();
+
+/* ===== ВРЕМЕННЫЙ ДЕБАГ (п.9 запроса) =====
+   При каждом запуске откатываем прохождение уровней 5,6,7 (индексы 4,5,6)
+   в ОБЕИХ эпохах, если они были пройдены — чтобы можно было тестировать их
+   заново. Эпоха в запросе не была уточнена, применил к обеим на всякий
+   случай — [идея] если нужно только для одной, скажи. УБРАТЬ этот блок
+   целиком, когда тестирование закончится (ищи по этому комментарию).
+   ========================================== */
+["stone", "medieval"].forEach((epochKey) => {
+  const epData = SAVE.epochs[epochKey];
+  if (!epData) return;
+  epData.clearedLevels = Math.min(epData.clearedLevels, 4); // level5 = индекс 4 → блокирует и level6/7 тоже, как обычная игровая логика
+  [4, 5, 6].forEach((idx) => { delete epData.levelBestStars[idx]; });
+});
+writeSave(SAVE);
+/* ===== КОНЕЦ ВРЕМЕННОГО ДЕБАГА ===== */
 applyEpoch(SAVE.currentEpoch);
 writeSave(SAVE); // сразу фиксируем уже мигрированный/дефолтный сейв в новом формате
 
@@ -954,16 +977,17 @@ function setUnitSpriteFrame(unit, phase, frame) {
   if (!unit.spriteEl || !unit.spriteName) return;
   const ratio = SPRITE_RATIO[unit.spriteName] || 0.2;
   const size = SPRITE_CANVAS_SIZE[unit.spriteName][phase];
-  // Высота И ширина ставятся синхронно, вместе со сменой src. Раньше ширина
-  // была "auto" — при первой загрузке файла конкретной фазы (кэш-мисс)
-  // браузер не знает нативные пропорции до onload и на долю кадра может
-  // отрисовать элемент по дефолтной ширине, пока не подгрузится картинка —
-  // отсюда предположительно "воин увеличивается" перед первой атакой
-  // (не проверено визуально, только по коду — см. VERSION-комментарий).
-  if (size) {
-    unit.spriteEl.style.height = (size[1] * ratio) + "px";
-    unit.spriteEl.style.width = (size[0] * ratio) + "px";
-  }
+  // ОТКАТ: раньше здесь пробовали ставить ширину синхронно вместе с высотой
+  // (гипотеза — "воин увеличивается" из-заauto-ширины при первой загрузке
+  // файла). Роман сообщил, что после этой правки воин стал ещё и ШИРЕ —
+  // гипотеза не подтвердилась, откатываю обратно на "только высота", как
+  // было раньше. Отдельно нашёл вероятную РЕАЛЬНУЮ причину — см. VERSION-
+  // комментарий и SPRITE_CANVAS_SIZE: у Warrior разница между холстом
+  // ходьбы (222×249) и атаки (514×315) непропорционально больше, чем у
+  // остальных юнитов (~1.2× по ширине против 2.3× у воина) — это не
+  // подтверждено визуально по файлам (нет доступа), нужно перепроверить
+  // сами PNG.
+  if (size) unit.spriteEl.style.height = (size[1] * ratio) + "px";
   unit.spriteEl.src = spriteFramePath(unit.spriteName, unit.spriteSide, phase, frame);
 }
 
@@ -1428,6 +1452,7 @@ function startBattleInner(levelIndex) {
   el("btn-speed").textContent = selectedSpeedMul + "x";
   el("battle-result").classList.remove("show");
   el("battle-bottom").style.display = "";
+  el("kill-values").style.display = "";
   el("battle-level-label").textContent = "Уровень " + (levelIndex + 1);
   updateGoldDisplay();
   el("lane-wrap").querySelectorAll(".unit, .coin-fly, .projectile").forEach((n) => n.remove());
@@ -1778,7 +1803,8 @@ function battleTick() {
           const arrowUnit = unit, arrowTarget = target;
           setTimeout(() => {
             if (arrowUnit.hp <= 0) return; // атакующий умер до вылета — не стреляем (см. STONEAGE_PROJECT_CONTEXT, раздел 7, урок про гонку состояний)
-            spawnProjectile(arrowUnit, arrowTarget && arrowTarget.hp > 0 ? arrowTarget : null);
+            if (arrowTarget && arrowTarget.hp <= 0) return; // цель умерла за время задержки — раньше стрела летела "в базу" мимо, теперь просто отменяем
+            spawnProjectile(arrowUnit, arrowTarget);
           }, arrowDelayMs);
         }
         if (target) {
@@ -1899,8 +1925,22 @@ function spawnCoinFly(fromEl, value) {
   setTimeout(() => { coinWrap.remove(); clearInterval(frameTimer); }, 1400);
 }
 
+/* Прячет пустую HP-плашку умершего юнита — остаётся видна (пустой ползунок)
+   только до начала мигания/падения, дальше не нужна (п.5). */
+function hideHpTrack(unit) {
+  if (!unit.el) return;
+  const track = unit.el.querySelector(".hp-track");
+  if (track) track.style.display = "none";
+}
+
 function onUnitKilled(victim, killer) {
   if (victim.el) {
+    // Полоска HP сразу обнуляется — раньше оставался "хвост" последнего
+    // ненулевого значения, т.к. обычный тик обновления HP не успевал
+    // отработать до старта анимации смерти.
+    const hpFillEl = victim.el.querySelector(".hp-fill");
+    if (hpFillEl) hpFillEl.style.width = "0%";
+
     if (victim.spriteEl && victim.spriteName) {
       const deathCount = SPRITE_FRAME_COUNTS[victim.spriteName].death;
       let frame = 1;
@@ -1911,10 +1951,11 @@ function onUnitKilled(victim, killer) {
         if (victim.isAir) {
           // Летающие — без статичной паузы, сразу падение+мигание (существующие CSS-классы)
           victim.el.classList.add("dying-fall");
+          hideHpTrack(victim); // сама плашка (пустая) исчезает с началом мигания, не раньше
           setTimeout(() => victim.el && victim.el.remove(), DEATH_BLINK_MS_FLYER + 100);
         } else {
           // Наземные — лежат статично (последний кадр смерти), потом мигают
-          setTimeout(() => { if (victim.el) victim.el.classList.add("dying"); }, DEATH_HOLD_MS);
+          setTimeout(() => { if (victim.el) { victim.el.classList.add("dying"); hideHpTrack(victim); } }, DEATH_HOLD_MS);
           setTimeout(() => victim.el && victim.el.remove(), DEATH_HOLD_MS + DEATH_BLINK_MS_GROUND);
         }
       };
@@ -1941,6 +1982,7 @@ function onUnitKilled(victim, killer) {
       }
     } else {
       victim.el.classList.add("dying");
+      hideHpTrack(victim);
       setTimeout(() => victim.el && victim.el.remove(), 320);
     }
   }
@@ -1955,13 +1997,13 @@ function onUnitKilled(victim, killer) {
   }
 }
 
-/* Плашка предстоящих врагов — 2 ряда максимум (было до 3, п.6). Ближайший
-   к спавну враг всегда КРАЙНИЙ СПРАВА (плашка прижата к правому краю
-   экрана, где реально появляются враги). Если очередь не помещается в
-   2 ряда — "+n" (n = сколько ещё врагов не показано) ставится СЛЕВА от
-   дальней (верхней) группы. Число иконок в ряду считаем от реальной
-   ширины экрана боя, а не хардкодим — правило: ряд не должен заходить за
-   центр экрана больше чем на 15% ширины экрана. */
+/* Плашка предстоящих врагов — теперь 1 ряд (было 2, до этого 3, п.6).
+   Ближайший к спавну враг всегда КРАЙНИЙ СПРАВА (плашка прижата к правому
+   краю экрана, где реально появляются враги). Если очередь не помещается в
+   ряд — "+n" (n = сколько ещё врагов не показано) ставится СЛЕВА от видимых.
+   Число иконок в ряду считаем от реальной ширины экрана боя, а не хардкодим
+   — правило: ряд не должен заходить за центр экрана больше чем на 15%
+   ширины экрана. */
 function renderWaveCounter() {
   const wrap = el("wave-counter");
   const order = battle.waveQueue; // уже отсортирована по времени спавна, [0] = ближайший
@@ -1977,12 +2019,9 @@ function renderWaveCounter() {
   const minLeftX = wrapW * 0.5 - wrapW * 0.15;
   const maxRowWidth = Math.max(ICON_SIZE, (wrapW - RIGHT_MARGIN) - minLeftX);
   const perRow = Math.max(1, 1 + Math.floor((maxRowWidth - ICON_SIZE) / STEP_PX));
-  const totalCapacity = perRow * 2;
 
-  const shown = order.slice(0, totalCapacity); // soonest-first, до totalCapacity штук
+  const shown = order.slice(0, perRow); // ближайшие perRow штук, soonest-first
   const hiddenCount = order.length - shown.length;
-  const nearRow = shown.slice(0, perRow);         // ближайшие (нижний ряд)
-  const farRow = shown.slice(perRow, totalCapacity); // следующие по очереди (верхний ряд)
 
   function buildRow(rowUnits, extraLeftBadge) {
     const row = document.createElement("div");
@@ -1993,9 +2032,9 @@ function renderWaveCounter() {
       more.textContent = extraLeftBadge;
       row.appendChild(more);
     }
-    // Разворачиваем — соответствующий этому ряду САМЫЙ БЛИЖАЙШИЙ враг должен
-    // оказаться последним в DOM (значит крайним справа, т.к. ряд прижат
-    // вправо через flex-direction:column;align-items:flex-end у родителя).
+    // Разворачиваем — самый ближайший враг должен оказаться последним в DOM
+    // (значит крайним справа, т.к. ряд прижат вправо через justify во
+    // wave-counter-row / align-items:flex-end у родителя).
     rowUnits.slice().reverse().forEach((w, i) => {
       const src = UNIT_ICONS[w.type];
       const iconEl = src ? document.createElement("img") : document.createElement("span");
@@ -2010,12 +2049,7 @@ function renderWaveCounter() {
   }
 
   wrap.innerHTML = "";
-  if (farRow.length || hiddenCount > 0) {
-    wrap.appendChild(buildRow(farRow, hiddenCount > 0 ? "+" + hiddenCount : null));
-  }
-  if (nearRow.length) {
-    wrap.appendChild(buildRow(nearRow, null));
-  }
+  wrap.appendChild(buildRow(shown, hiddenCount > 0 ? "+" + hiddenCount : null));
 }
 
 function renderKillValues() {
@@ -2144,11 +2178,15 @@ function endBattle(won) {
   const nextEpochKey = EPOCH_ORDER[epochIdx + 1];
   const primaryBtn = el("result-btn-primary");
 
-  // Блок статистики
+  // Блок статистики. Оба варианта value (просто текст "100%" и монетка+число)
+  // получают одинаковую фиксированную высоту строки (34px — высота монетки) и
+  // центрируются одинаково — раньше "100%" был обычным текстом без явной
+  // высоты, а строка с монеткой была выше из-за картинки, из-за чего и сама
+  // цифра, и подпись под ней съезжали относительно соседнего блока.
   function makeStatBlock(val, label) {
     return '<div style="text-align:center;">' +
-      '<div style="display:inline-flex;align-items:center;gap:4px;font-size:20px;font-weight:700;color:var(--accent);">' + val + '</div>' +
-      '<div style="font-size:13px;color:var(--text-dim);">' + label + '</div>' +
+      '<div style="display:flex;align-items:center;justify-content:center;gap:4px;height:34px;font-size:20px;font-weight:700;color:var(--accent);">' + val + '</div>' +
+      '<div style="font-size:13px;color:var(--text-dim);margin-top:2px;">' + label + '</div>' +
       '</div>';
   }
   const hpPct = Math.round((battle.playerHp / battle.playerHpMax) * 100);
@@ -2234,6 +2272,7 @@ function endBattle(won) {
   // #00000080, 50% — стартовое значение, поправим степень при необходимости),
   // но нижнюю панель прячем явно, а не полагаемся на z-index/прозрачность.
   el("battle-bottom").style.display = "none";
+  el("kill-values").style.display = "none";
 
   overlay.classList.add("show");
 }
