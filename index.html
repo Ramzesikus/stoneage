@@ -17,8 +17,25 @@
   #app { height: 100%; display: flex; flex-direction: column; }
   button { font-family: inherit; }
 
-  .screen { display: none; flex-direction: column; height: 100%; }
+  .screen { display: none; flex-direction: column; flex: 1; min-height: 0; }
   .screen.active { display: flex; }
+
+  /* ============ Нижняя навигация ============ */
+  #bottom-nav {
+    flex-shrink: 0; display: flex; background: var(--panel);
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px));
+    border-top: 1px solid #ffffff14;
+  }
+  #bottom-nav.hidden { display: none; }
+  .nav-btn {
+    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
+    background: none; border: none; color: var(--text-dim); font-size: 10px; cursor: pointer; padding: 4px 2px;
+  }
+  .nav-btn .nav-icon { font-size: 22px; line-height: 1; }
+  .nav-btn.active { color: var(--accent); }
+  .nav-btn.nav-btn-main .nav-icon { font-size: 30px; }
+  .nav-btn.nav-btn-main { color: var(--text); }
+  .nav-btn.nav-btn-main.active { color: var(--accent); }
 
   #screen-menu { padding: 0; }
   #menu-header-fixed {
@@ -51,33 +68,62 @@
     justify-content: center; padding: 18px; border-radius: 16px;
     letter-spacing: 0.5px; width: 100%; max-width: 320px;
   }
-  /* Вкладки описания воинов */
-  #menu-info-tabs { display: flex; gap: 6px; width: 100%; max-width: 320px; }
-  .menu-info-tab {
-    flex: 1; padding: 8px 4px; border-radius: 8px; border: 1px solid var(--panel);
-    background: rgba(36,51,28,0.75); color: var(--text-dim); font-size: 12px; cursor: pointer; text-align: center;
+  /* Статичный лейбл эпохи (Уровни/Магазин/Воины) — эпоха теперь меняется
+     только в Настройках, здесь просто показываем текущую, без переключателя. */
+  .epoch-label {
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    font-size: 15px; color: var(--text-dim); margin-bottom: 4px;
   }
-  .menu-info-tab.active { background: var(--panel); color: var(--text); }
-  #menu-hq-content, #menu-unit-legend {
-    width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: 10px; align-items: center;
-  }
-  #menu-hq-content { flex: 1; min-height: 320px; }
-  #menu-unit-legend { flex: 1; min-height: 320px; }
-  .menu-hq-spacer { flex-shrink: 0; }
 
+  /* Главный экран — упрощён: эпоха, золото, активный уровень, "В бой!" */
+  #menu-active-level { font-size: 22px; font-weight: 700; margin: 4px 0; }
 
-  /* Вторичные кнопки (Сброс + Магазин), теперь внутри вкладки Штаб */
-  #menu-secondary-row {
-    display: flex; justify-content: center; gap: 40px; align-items: flex-end;
-    width: 100%; max-width: 320px;
+  /* ============ Экран настроек ============ */
+  #screen-settings { padding: 16px; gap: 12px; overflow-y: auto; align-items: center; }
+  .settings-row {
+    width: 100%; max-width: 360px; background: rgba(36,51,28,0.75); border-radius: 12px;
+    padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px;
   }
-  .menu-sec-btn {
-    display: flex; flex-direction: column; align-items: center; gap: 4px;
-    background: none; border: none; cursor: pointer; color: var(--text-dim); padding: 4px 8px;
+  .settings-row .settings-label { font-size: 14px; }
+  .settings-toggle {
+    width: 46px; height: 26px; border-radius: 13px; border: none; background: #ffffff30;
+    position: relative; cursor: pointer; flex-shrink: 0;
   }
-  .menu-sec-btn img { width: 60px; height: 60px; object-fit: contain; }
-  .menu-sec-btn .sec-icon { font-size: 40px; line-height: 1; }
-  .menu-sec-btn span { font-size: 12px; color: #000; }
+  .settings-toggle::after {
+    content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px;
+    border-radius: 50%; background: #fff; transition: transform 0.15s ease;
+  }
+  .settings-toggle.on { background: var(--good); }
+  .settings-toggle.on::after { transform: translateX(20px); }
+  .settings-arrows { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .settings-arrow-btn {
+    width: 28px; height: 28px; border-radius: 8px; border: none; background: var(--panel);
+    color: var(--text); font-size: 16px; cursor: pointer; flex-shrink: 0;
+  }
+  .settings-arrow-value { font-size: 14px; min-width: 90px; text-align: center; }
+  .settings-select {
+    background: var(--panel); color: var(--text); border: 1px solid #ffffff30; border-radius: 8px;
+    padding: 6px 8px; font-size: 14px;
+  }
+  .settings-name-input {
+    background: var(--panel); color: var(--text); border: 1px solid #ffffff30; border-radius: 8px;
+    padding: 6px 8px; font-size: 14px; width: 140px; text-align: right;
+  }
+  #settings-feedback-box { width: 100%; max-width: 360px; }
+  #settings-feedback-text {
+    width: 100%; min-height: 70px; background: rgba(36,51,28,0.75); color: var(--text);
+    border: 1px solid #ffffff30; border-radius: 10px; padding: 10px; font-size: 13px; resize: vertical;
+    font-family: inherit;
+  }
+  #settings-feedback-send {
+    margin-top: 6px; width: 100%; padding: 10px; border-radius: 10px; border: none;
+    background: var(--accent); color: #2a2010; font-weight: 700; cursor: pointer;
+  }
+  #settings-feedback-status { font-size: 12px; color: var(--good); margin-top: 4px; text-align: center; height: 14px; }
+  #settings-reset-btn {
+    width: 100%; max-width: 360px; padding: 12px; border-radius: 10px; border: 1px solid var(--bad);
+    background: none; color: var(--bad); font-size: 14px; cursor: pointer;
+  }
 
   /* Карточки воинов 2x2 (свои / вражеские) */
   .unit-card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
@@ -112,6 +158,7 @@
   .level-btn.locked { background: rgba(90,90,90,0.35); border-color: rgba(60,60,60,0.35); color: rgba(240,240,232,0.5); opacity: 1; cursor: default; }
   /* Доступен, но ещё не пройден — серый, БЕЗ прозрачности */
   .level-btn.unlocked-pending { background: #5a5a5a; border-color: #3a3a3a; }
+  .level-btn.active-level { border-width: 4px; }
   /* Пройден — оливковая заливка как раньше, рамка по числу звёзд (переиспользуем цвета, уже есть в палитре) */
   .level-btn.cleared { background: var(--panel); }
   .level-btn.cleared.stars-1 { border-color: var(--bad); }
@@ -362,8 +409,8 @@
   }
   @keyframes splashSpin { to { transform: translateX(-50%) rotate(360deg); } }
 
-  /* Фоны экранов меню/магазина/боя — по эпохе, задаются JS через style.backgroundImage */
-  #screen-menu, #screen-shop {
+  /* Фоны экранов меню/магазина/воинов/боя — по эпохе, задаются JS через style.backgroundImage */
+  #screen-menu, #screen-shop, #screen-warriors {
     background-size: auto 100%; background-position: center top; background-repeat: no-repeat;
     background-color: var(--bg); /* видно по бокам, если картинка уже экрана — letterbox вместо обрезки/растяжения */
   }
@@ -383,60 +430,92 @@
         <h1 id="menu-title">🏔️ Каменный век</h1>
         <span id="menu-gold-display"></span>
       </div>
-      <div class="epoch-tabs" id="epoch-tabs-menu"></div>
-
-      <div id="menu-info-tabs">
-        <button class="menu-info-tab active" id="menu-tab-hq" onclick="switchMenuTab('hq')">Штаб</button>
-        <button class="menu-info-tab" id="menu-tab-units" onclick="switchMenuTab('units')">Воины</button>
-      </div>
     </div>
-    <div id="menu-scroll">
-      <div id="menu-hq-content">
-        <div class="menu-hq-spacer" style="flex-grow:8;"></div>
-        <div id="menu-secondary-row">
-          <button class="menu-sec-btn" id="btn-reset-progress">
-            <span class="sec-icon">↺</span>
-            <span id="btn-reset-progress-label">Сброс</span>
-          </button>
-          <button class="menu-sec-btn" id="btn-go-shop">
-            <span class="sec-icon">🛒</span>
-            <span id="btn-go-shop-label">Магазин</span>
-          </button>
-        </div>
-        <!-- ВРЕМЕННО: переключатель языка для теста перевода, до готовности
-             панели настроек (см. обсуждение нижней навигации) — убрать
-             отсюда и перенести в Настройки, когда та будет готова. -->
-        <div id="temp-lang-row" style="display:flex; gap:6px; margin-top:8px;">
-          <button class="menu-sec-btn temp-lang-btn" data-lang="ru" style="flex:1;font-size:13px;">RU</button>
-          <button class="menu-sec-btn temp-lang-btn" data-lang="en" style="flex:1;font-size:13px;">EN</button>
-          <button class="menu-sec-btn temp-lang-btn" data-lang="zh" style="flex:1;font-size:13px;">中文</button>
-          <button class="menu-sec-btn temp-lang-btn" data-lang="es" style="flex:1;font-size:13px;">ES</button>
-        </div>
-      </div>
-      <div id="menu-unit-legend" style="display:none;"></div>
+    <div id="menu-scroll" style="justify-content:center;">
+      <div id="menu-active-level"></div>
     </div>
     <div id="menu-footer-fixed">
-      <button class="menu-btn" id="btn-go-levels"><span id="btn-go-levels-label">В бой!</span> <span class="gold" id="menu-gold" style="display:none;"></span></button>
+      <button class="menu-btn" id="btn-go-levels"><span id="btn-go-levels-label">В бой!</span></button>
     </div>
   </div>
 
   <div class="screen" id="screen-levels">
     <h2 id="levels-title">Выбор уровня</h2>
-    <div class="epoch-tabs" id="epoch-tabs-levels"></div>
+    <div class="epoch-label" id="epoch-label-levels"></div>
     <div class="level-row" id="level-row"></div>
-    <div class="back-link" data-back="menu" id="levels-back-link">‹ В меню</div>
   </div>
 
   <div class="screen" id="screen-shop">
     <div class="shop-sticky-top">
       <div class="shop-header-row">
         <h2 style="margin:6px 0;" id="shop-title">Магазин</h2>
-        <span class="shop-back-btn" data-back="menu" id="shop-back-link">‹ В меню</span>
       </div>
-      <div class="epoch-tabs" id="epoch-tabs-shop" style="margin-bottom:0;"></div>
+      <div class="epoch-label" id="epoch-label-shop" style="margin-bottom:0;"></div>
       <div class="shop-gold" id="shop-gold-label" style="margin-bottom:0;"></div>
     </div>
     <div id="shop-list"></div>
+  </div>
+
+  <div class="screen" id="screen-warriors">
+    <h2 id="warriors-title">Воины</h2>
+    <div class="epoch-label" id="epoch-label-warriors"></div>
+    <div id="warriors-cards" style="width:100%; max-width:360px; overflow-y:auto; padding:0 16px;"></div>
+  </div>
+
+  <div class="screen" id="screen-settings">
+    <h2 id="settings-title">Настройки</h2>
+
+    <div class="settings-row">
+      <span class="settings-label" id="settings-playerName-label">Имя игрока</span>
+      <input type="text" class="settings-name-input" id="settings-name-input" maxlength="24">
+    </div>
+
+    <div class="settings-row">
+      <span class="settings-label" id="settings-vibration-label">Вибрация</span>
+      <button class="settings-toggle" id="settings-vibration-toggle"></button>
+    </div>
+
+    <div class="settings-row">
+      <span class="settings-label" id="settings-confirmExit-label">Подтверждать выход из боя</span>
+      <button class="settings-toggle" id="settings-confirmExit-toggle"></button>
+    </div>
+
+    <div class="settings-row">
+      <span class="settings-label" id="settings-language-label">Язык</span>
+      <select class="settings-select" id="settings-language-select">
+        <option value="ru">Русский</option>
+        <option value="en">English</option>
+        <option value="zh">中文</option>
+        <option value="es">Español</option>
+      </select>
+    </div>
+
+    <div class="settings-row">
+      <span class="settings-label" id="settings-epoch-label">Эпоха</span>
+      <div class="settings-arrows">
+        <button class="settings-arrow-btn" id="settings-epoch-prev">◄</button>
+        <span class="settings-arrow-value" id="settings-epoch-value"></span>
+        <button class="settings-arrow-btn" id="settings-epoch-next">►</button>
+      </div>
+    </div>
+
+    <div class="settings-row">
+      <span class="settings-label" id="settings-speed-label">Скорость боя по умолчанию</span>
+      <div class="settings-arrows">
+        <button class="settings-arrow-btn" id="settings-speed-prev">◄</button>
+        <span class="settings-arrow-value" id="settings-speed-value"></span>
+        <button class="settings-arrow-btn" id="settings-speed-next">►</button>
+      </div>
+    </div>
+
+    <div id="settings-feedback-box">
+      <div class="settings-label" id="settings-feedback-title" style="margin-bottom:6px;">Обратная связь</div>
+      <textarea id="settings-feedback-text" maxlength="500"></textarea>
+      <button id="settings-feedback-send"></button>
+      <div id="settings-feedback-status"></div>
+    </div>
+
+    <button id="settings-reset-btn"></button>
   </div>
 
   <div class="screen" id="screen-battle">
@@ -495,6 +574,14 @@
         <div id="unit-buttons"></div>
       </div>
     </div>
+  </div>
+
+  <div id="bottom-nav">
+    <button class="nav-btn" id="nav-btn-settings"><span class="nav-icon">⚙️</span><span id="nav-label-settings">Настройки</span></button>
+    <button class="nav-btn" id="nav-btn-shop"><span class="nav-icon">🛒</span><span id="nav-label-shop">Магазин</span></button>
+    <button class="nav-btn nav-btn-main" id="nav-btn-main"><span class="nav-icon">🏠</span><span id="nav-label-main">Главная</span></button>
+    <button class="nav-btn" id="nav-btn-levels"><span class="nav-icon">🗺️</span><span id="nav-label-levels">Уровни</span></button>
+    <button class="nav-btn" id="nav-btn-warriors"><span class="nav-icon">🗡️</span><span id="nav-label-warriors">Воины</span></button>
   </div>
 
 </div>
@@ -778,19 +865,33 @@ function applyEpoch(key) {
 /* Обновляет статичные текстовые узлы разметки (те, что не пересобираются
    каждый раз через render*()) — вызывается при старте и при смене языка. */
 function refreshStaticUiText() {
-  el("menu-tab-hq").textContent = t("menu.tab.hq");
-  el("menu-tab-units").textContent = t("menu.tab.units");
-  el("btn-reset-progress-label").textContent = t("menu.reset");
-  el("btn-go-shop-label").textContent = t("menu.shop");
   el("btn-go-levels-label").textContent = t("menu.play");
   el("levels-title").textContent = t("levels.title");
-  el("levels-back-link").textContent = t("nav.backToMenu");
   el("shop-title").textContent = t("shop.title");
-  el("shop-back-link").textContent = t("nav.backToMenu");
+  el("warriors-title").textContent = t("menu.tab.units");
   el("battle-base-label-player").textContent = t("battle.yourBase");
   el("battle-base-label-enemy").textContent = t("battle.enemyBase");
   el("result-btn-shop-label").textContent = t("result.shop");
   el("result-btn-menu").textContent = t("nav.backToMenu");
+
+  el("nav-label-settings").textContent = t("nav.settings");
+  el("nav-label-shop").textContent = t("menu.shop");
+  el("nav-label-main").textContent = t("nav.main");
+  el("nav-label-levels").textContent = t("nav.levels");
+  el("nav-label-warriors").textContent = t("menu.tab.units");
+
+  el("settings-title").textContent = t("settings.title");
+  el("settings-playerName-label").textContent = t("settings.playerName");
+  el("settings-vibration-label").textContent = t("settings.vibration");
+  el("settings-confirmExit-label").textContent = t("settings.confirmExitToggle");
+  el("settings-language-label").textContent = t("settings.language");
+  el("settings-epoch-label").textContent = t("settings.epoch");
+  el("settings-speed-label").textContent = t("settings.battleSpeed");
+  el("settings-feedback-title").textContent = t("settings.feedbackTitle");
+  el("settings-feedback-text").placeholder = t("settings.feedbackPlaceholder");
+  el("settings-feedback-send").textContent = t("settings.feedbackSend");
+  el("settings-reset-btn").textContent = t("settings.reset");
+  el("settings-language-select").value = SAVE.language;
 }
 
 /* Смена языка интерфейса — сохраняет выбор и перерисовывает всё видимое.
@@ -808,12 +909,15 @@ function applyLanguage(lang) {
   if (el("screen-menu").classList.contains("active")) renderMenu();
   else if (el("screen-levels").classList.contains("active")) renderLevels();
   else if (el("screen-shop").classList.contains("active")) renderShop();
+  else if (el("screen-warriors").classList.contains("active")) renderWarriors();
+  else if (el("screen-settings").classList.contains("active")) renderSettings();
 }
 
-/* Фоны меню/магазина/боя — по эпохе. */
+/* Фоны меню/магазина/воинов/боя — по эпохе. */
 function applyEpochBackgrounds(key) {
   el("screen-menu").style.backgroundImage = 'url(' + A("backgrounds/Menu.png", key) + ')';
   el("screen-shop").style.backgroundImage = 'url(' + A("backgrounds/Shop.png", key) + ')';
+  el("screen-warriors").style.backgroundImage = 'url(' + A("backgrounds/Menu.png", key) + ')';
   el("lane-wrap").style.setProperty('--fight-bg', 'url(' + A("backgrounds/Fight.png", key) + ')');
   const foodIconName = key === "stone" ? "Food_2" : "Food_1"; // Каменный век — новая иконка еды по запросу
   el("food-icon-label").innerHTML = '<img src="' + A("ui/" + foodIconName + ".png", key) + '" style="width:40px;height:40px;object-fit:contain;vertical-align:middle;"> ' + t("battle.food");
@@ -893,6 +997,37 @@ const STRINGS = {
   "stars.notEnough": { ru: "Не хватает 🪙 {deficit}.\nДокупить {coins} монет за ⭐{stars}?", en: "Missing 🪙 {deficit}.\nBuy {coins} coins for ⭐{stars}?", zh: "还差 🪙 {deficit}。\n花费 ⭐{stars} 购买 {coins} 枚金币？", es: "Faltan 🪙 {deficit}.\n¿Comprar {coins} monedas por ⭐{stars}?" },
   "stars.coinsTitle": { ru: "Монеты", en: "Coins", zh: "金币", es: "Monedas" },
   "stars.coinsDesc":  { ru: "{coins} монет для покупки в магазине", en: "{coins} coins for shop purchases", zh: "用于商店购买的 {coins} 枚金币", es: "{coins} monedas para compras en la tienda" },
+
+  "battle.confirmExit": {
+    ru: "Точно выйти из боя? Прогресс уровня не сохранится.",
+    en: "Leave the battle? Level progress won't be saved.",
+    zh: "确定要退出战斗吗？本关进度不会保存。",
+    es: "¿Salir del combate? El progreso del nivel no se guardará.",
+  },
+
+  "nav.settings":  { ru: "Настройки", en: "Settings", zh: "设置", es: "Ajustes" },
+  "nav.main":      { ru: "Главная", en: "Home", zh: "主页", es: "Inicio" },
+  "nav.levels":    { ru: "Уровни", en: "Levels", zh: "关卡", es: "Niveles" },
+
+  "settings.title":      { ru: "Настройки", en: "Settings", zh: "设置", es: "Ajustes" },
+  "settings.playerName": { ru: "Имя игрока", en: "Player name", zh: "玩家名称", es: "Nombre de jugador" },
+  "settings.vibration":  { ru: "Вибрация", en: "Vibration", zh: "震动", es: "Vibración" },
+  "settings.on":  { ru: "Вкл", en: "On", zh: "开", es: "Activado" },
+  "settings.off": { ru: "Выкл", en: "Off", zh: "关", es: "Desactivado" },
+  "settings.language": { ru: "Язык", en: "Language", zh: "语言", es: "Idioma" },
+  "settings.epoch":    { ru: "Эпоха", en: "Epoch", zh: "时代", es: "Época" },
+  "settings.battleSpeed": { ru: "Скорость боя по умолчанию", en: "Default battle speed", zh: "默认战斗速度", es: "Velocidad de combate predeterminada" },
+  "settings.confirmExitToggle": { ru: "Подтверждать выход из боя", en: "Confirm before leaving battle", zh: "退出战斗前需确认", es: "Confirmar antes de salir del combate" },
+  "settings.reset": { ru: "Сбросить прогресс", en: "Reset progress", zh: "重置进度", es: "Reiniciar progreso" },
+  "settings.feedbackTitle": { ru: "Обратная связь", en: "Feedback", zh: "反馈", es: "Comentarios" },
+  "settings.feedbackPlaceholder": {
+    ru: "Напиши, что понравилось или что стоит исправить…",
+    en: "Tell us what you liked or what should be fixed…",
+    zh: "写下你的建议或想反馈的问题……",
+    es: "Cuéntanos qué te gustó o qué deberíamos mejorar…",
+  },
+  "settings.feedbackSend": { ru: "Отправить", en: "Send", zh: "发送", es: "Enviar" },
+  "settings.feedbackSent": { ru: "Отправлено!", en: "Sent!", zh: "已发送！", es: "¡Enviado!" },
 
   "unit.infantry.name": { ru: "Дикарь с дубиной", en: "Clubman", zh: "棍棒野人", es: "Salvaje con garrote" },
   "unit.infantry.desc": { ru: "ближний бой, дёшево, в больших количествах", en: "melee, cheap, good in numbers", zh: "近战单位，便宜，适合大量投入", es: "cuerpo a cuerpo, barato, útil en cantidad" },
@@ -983,6 +1118,10 @@ const DEFAULT_SAVE = {
   gold: 0,
   currentEpoch: "stone",
   language: "ru", // ru/en/zh/es — выбор языка интерфейса
+  playerName: "player", // редактируется в Настройках, шлётся в аналитику ДОПОЛНИТЕЛЬНО к телеграм-id, не вместо него
+  vibrationEnabled: true, // управляет только triggerHitHaptic() — вибрация при ударе по своей базе
+  confirmExitBattle: true, // спрашивать подтверждение перед выходом из боя кнопкой ✕
+  defaultBattleSpeed: 1, // 1/2/3 — стартовая скорость боя, настраивается в Настройках; во время боя можно сменить кнопкой, это не переписывает дефолт
 
   starsUpgrades: { startFood: 0, bonusGold: 0, unitSpeed: 0, crit: 0 },
   epochs: {
@@ -1013,6 +1152,10 @@ function loadSave() {
     merged.difficulty = data.difficulty || "normal";
     merged.currentEpoch = data.currentEpoch || "stone";
     merged.language = SUPPORTED_LANGUAGES.includes(data.language) ? data.language : "ru";
+    merged.playerName = (typeof data.playerName === "string" && data.playerName.trim()) ? data.playerName.trim().slice(0, 24) : "player";
+    merged.vibrationEnabled = data.vibrationEnabled !== false; // по умолчанию true, если поля ещё нет
+    merged.confirmExitBattle = data.confirmExitBattle !== false; // по умолчанию true
+    merged.defaultBattleSpeed = [1, 2, 3].includes(data.defaultBattleSpeed) ? data.defaultBattleSpeed : 1;
 
     merged.starsUpgrades = Object.assign({}, DEFAULT_SAVE.starsUpgrades, data.starsUpgrades);
     // обратная совместимость: раньше это были true/false, теперь уровень 0-5
@@ -1217,19 +1360,28 @@ function spriteFramePath(spriteName, side, phase, frame, epochKey) {
   return A("sprites/" + spriteName + "_" + side + "_" + phase + frame + ".png", epochKey);
 }
 
+const NAV_SCREEN_MAP = {
+  "screen-settings": "nav-btn-settings",
+  "screen-shop": "nav-btn-shop",
+  "screen-menu": "nav-btn-main",
+  "screen-levels": "nav-btn-levels",
+  "screen-warriors": "nav-btn-warriors",
+};
 function showScreen(id) {
   document.querySelectorAll(".screen").forEach((s) => s.classList.remove("active"));
   el(id).classList.add("active");
+  const nav = el("bottom-nav");
+  if (id === "screen-battle") {
+    nav.classList.add("hidden");
+  } else {
+    nav.classList.remove("hidden");
+    document.querySelectorAll(".nav-btn").forEach((b) => b.classList.remove("active"));
+    const activeBtnId = NAV_SCREEN_MAP[id];
+    if (activeBtnId) el(activeBtnId).classList.add("active");
+  }
+  if (id !== "screen-warriors") stopUnitCardsAnim(); // анимация ходьбы карточек нужна только на этом экране
 }
-document.querySelectorAll("[data-back]").forEach((b) => {
-  b.addEventListener("click", () => {
-    if (battleTimer) stopBattle();
-    renderMenu();
-    showScreen("screen-" + b.dataset.back);
-  });
-});
 
-let _menuTab = "hq";
 let unitCardsAnimTimer = null;
 let unitCardsAnimFrame = {}; // key -> текущий кадр ходьбы
 
@@ -1252,25 +1404,19 @@ function startUnitCardsAnim() {
   }, ANIM_FRAME_MS);
 }
 
-function switchMenuTab(tab) {
-  _menuTab = tab;
-  el("menu-tab-hq").classList.toggle("active", tab === "hq");
-  el("menu-tab-units").classList.toggle("active", tab === "units");
-  el("menu-hq-content").style.display = tab === "hq" ? "flex" : "none";
-  el("menu-unit-legend").style.display = tab === "units" ? "flex" : "none";
-  renderActiveMenuTab();
-  if (tab === "units") startUnitCardsAnim(); else stopUnitCardsAnim();
-}
-
-function renderActiveMenuTab() {
-  if (_menuTab === "units") renderUnitCards("menu-unit-legend");
-}
-
+/* Главный экран — упрощён: эпоха, золото, активный уровень, "В бой!".
+   Штаб/Воины-вкладки убраны — Воины теперь отдельный экран (см. renderWarriors),
+   Сброс/Магазин переехали в Настройки/нижнюю навигацию. */
 function renderMenu() {
   el("menu-gold-display").innerHTML = coinImg(30) + " " + SAVE.gold;
   el("menu-title").textContent = EPOCHS[SAVE.currentEpoch].tabIcon + " " + t("epoch." + SAVE.currentEpoch);
-  renderEpochTabs("epoch-tabs-menu", renderMenu);
-  renderActiveMenuTab();
+  el("menu-active-level").textContent = t("battle.level", { n: EP().clearedLevels + 1 });
+}
+
+/* Экран "Воины" — статичный лейбл эпохи + карточки юнитов (было вкладкой в меню) */
+function renderWarriors() {
+  el("epoch-label-warriors").textContent = EPOCHS[SAVE.currentEpoch].tabIcon + " " + t("epoch." + SAVE.currentEpoch);
+  renderUnitCards("warriors-cards");
 }
 
 function statLine(icon, value) {
@@ -1346,26 +1492,125 @@ function renderUnitCards(containerId) {
   spacerBottom.style.flexGrow = "1";
   container.appendChild(spacerBottom);
 }
-el("btn-go-levels").addEventListener("click", () => { renderLevels(); showScreen("screen-levels"); });
-el("btn-go-shop").addEventListener("click", () => { renderShop(); showScreen("screen-shop"); });
+/* "В бой!" с главного экрана — сразу стартует активный (последний доступный)
+   уровень текущей эпохи, без захода на экран Уровней. */
+el("btn-go-levels").addEventListener("click", () => { startBattle(EP().clearedLevels); });
 
-el("btn-reset-progress").addEventListener("click", () => {
+/* ============ Нижняя навигация ============ */
+el("nav-btn-settings").addEventListener("click", () => { renderSettings(); showScreen("screen-settings"); });
+el("nav-btn-shop").addEventListener("click", () => { renderShop(); showScreen("screen-shop"); });
+el("nav-btn-main").addEventListener("click", () => { renderMenu(); showScreen("screen-menu"); });
+el("nav-btn-levels").addEventListener("click", () => { renderLevels(); showScreen("screen-levels"); });
+el("nav-btn-warriors").addEventListener("click", () => { renderWarriors(); showScreen("screen-warriors"); startUnitCardsAnim(); });
+
+/* ============ Экран настроек ============ */
+function renderSettings() {
+  el("settings-name-input").value = SAVE.playerName;
+  el("settings-vibration-toggle").classList.toggle("on", SAVE.vibrationEnabled);
+  el("settings-confirmExit-toggle").classList.toggle("on", SAVE.confirmExitBattle);
+  el("settings-language-select").value = SAVE.language;
+  el("settings-epoch-value").textContent = EPOCHS[SAVE.currentEpoch].tabIcon + " " + t("epoch." + SAVE.currentEpoch);
+  el("settings-speed-value").textContent = SAVE.defaultBattleSpeed + "x";
+  el("settings-feedback-status").textContent = "";
+}
+
+el("settings-name-input").addEventListener("change", () => {
+  const v = el("settings-name-input").value.trim().slice(0, 24);
+  SAVE.playerName = v || "player";
+  el("settings-name-input").value = SAVE.playerName;
+  writeSave(SAVE);
+});
+
+el("settings-vibration-toggle").addEventListener("click", () => {
+  SAVE.vibrationEnabled = !SAVE.vibrationEnabled;
+  writeSave(SAVE);
+  el("settings-vibration-toggle").classList.toggle("on", SAVE.vibrationEnabled);
+});
+
+el("settings-confirmExit-toggle").addEventListener("click", () => {
+  SAVE.confirmExitBattle = !SAVE.confirmExitBattle;
+  writeSave(SAVE);
+  el("settings-confirmExit-toggle").classList.toggle("on", SAVE.confirmExitBattle);
+});
+
+el("settings-language-select").addEventListener("change", () => {
+  applyLanguage(el("settings-language-select").value);
+});
+
+/* Смена эпохи из Настроек — со стрелочками, циклически по EPOCH_ORDER,
+   пропуская ещё не разблокированные эпохи. Показывает заставку загрузки
+   (Menu.png нужной эпохи), пока переключение не применится — та же
+   заставка, что при старте игры/бое, для убедительности перехода. */
+function changeEpochFromSettings(dir) {
+  const order = EPOCH_ORDER;
+  let idx = order.indexOf(SAVE.currentEpoch);
+  for (let i = 0; i < order.length; i++) {
+    idx = (idx + dir + order.length) % order.length;
+    if (isEpochUnlocked(order[idx])) break;
+  }
+  const nextKey = order[idx];
+  if (nextKey === SAVE.currentEpoch) return;
+  showSplash(preloadImages([A("backgrounds/Menu.png", nextKey)])).then(() => {
+    switchEpoch(nextKey);
+    refreshStaticUiText();
+    renderSettings();
+  });
+}
+el("settings-epoch-prev").addEventListener("click", () => changeEpochFromSettings(-1));
+el("settings-epoch-next").addEventListener("click", () => changeEpochFromSettings(1));
+
+el("settings-speed-prev").addEventListener("click", () => {
+  SAVE.defaultBattleSpeed = SAVE.defaultBattleSpeed <= 1 ? 3 : SAVE.defaultBattleSpeed - 1;
+  selectedSpeedMul = SAVE.defaultBattleSpeed;
+  writeSave(SAVE);
+  el("settings-speed-value").textContent = SAVE.defaultBattleSpeed + "x";
+});
+el("settings-speed-next").addEventListener("click", () => {
+  SAVE.defaultBattleSpeed = SAVE.defaultBattleSpeed >= 3 ? 1 : SAVE.defaultBattleSpeed + 1;
+  selectedSpeedMul = SAVE.defaultBattleSpeed;
+  writeSave(SAVE);
+  el("settings-speed-value").textContent = SAVE.defaultBattleSpeed + "x";
+});
+
+let feedbackSending = false;
+el("settings-feedback-send").addEventListener("click", () => {
+  if (feedbackSending) return;
+  const text = el("settings-feedback-text").value.trim();
+  if (!text) return;
+  feedbackSending = true;
+  sendAnalytics("💬 Обратная связь от " + getPlayerLabel() + ":\n" + text);
+  el("settings-feedback-text").value = "";
+  el("settings-feedback-status").textContent = t("settings.feedbackSent");
+  setTimeout(() => {
+    feedbackSending = false;
+    el("settings-feedback-status").textContent = "";
+  }, 2500);
+});
+
+el("settings-reset-btn").addEventListener("click", () => {
   const ok = window.confirm(t("menu.resetConfirm"));
   if (!ok) return;
+  // Сбрасывается только игровой прогресс (золото, уровни, апгрейды). Настройки
+  // устройства/интерфейса (язык, имя, вибрация, скорость, подтверждение
+  // выхода) — это не "прогресс", их не трогаем, как и покупки за Stars.
   const keepStars = SAVE.starsUpgrades;
   const keepLanguage = SAVE.language;
+  const keepName = SAVE.playerName;
+  const keepVibration = SAVE.vibrationEnabled;
+  const keepConfirmExit = SAVE.confirmExitBattle;
+  const keepSpeed = SAVE.defaultBattleSpeed;
   SAVE = deepClone(DEFAULT_SAVE);
   SAVE.starsUpgrades = keepStars;
   SAVE.language = keepLanguage;
+  SAVE.playerName = keepName;
+  SAVE.vibrationEnabled = keepVibration;
+  SAVE.confirmExitBattle = keepConfirmExit;
+  SAVE.defaultBattleSpeed = keepSpeed;
   applyEpoch(SAVE.currentEpoch);
   refreshStaticUiText();
   writeSave(SAVE);
   renderMenu();
-});
-
-// ВРЕМЕННО: см. комментарий у #temp-lang-row в разметке.
-document.querySelectorAll(".temp-lang-btn").forEach((btn) => {
-  btn.addEventListener("click", () => applyLanguage(btn.dataset.lang));
+  renderSettings();
 });
 
 /* Звёзды за уровень — по % оставшегося HP своей базы на момент победы
@@ -1391,32 +1636,13 @@ function switchEpoch(key) {
   writeSave(SAVE);
 }
 
-function renderEpochTabs(containerId, onSwitch) {
-  const row = el(containerId);
-  row.innerHTML = "";
-  EPOCH_ORDER.forEach((key) => {
-    const ep = EPOCHS[key];
-    const unlocked = isEpochUnlocked(key);
-    const btn = document.createElement("button");
-    btn.className = "epoch-tab" + (SAVE.currentEpoch === key ? " active" : "") + (!unlocked ? " locked" : "");
-    btn.textContent = ep.tabIcon + " " + ep.name;
-    if (unlocked) {
-      btn.addEventListener("click", () => {
-        switchEpoch(key);
-        onSwitch();
-      });
-    }
-    row.appendChild(btn);
-  });
-}
-
 function recordLevelStars(levelIndex, stars) {
   const prev = EP().levelBestStars[levelIndex] || 0;
   if (stars > prev) EP().levelBestStars[levelIndex] = stars;
 }
 
 function renderLevels() {
-  renderEpochTabs("epoch-tabs-levels", renderLevels);
+  el("epoch-label-levels").textContent = EPOCHS[SAVE.currentEpoch].tabIcon + " " + t("epoch." + SAVE.currentEpoch);
   const row = el("level-row");
   row.innerHTML = "";
   const cleared = EP().clearedLevels;
@@ -1424,11 +1650,11 @@ function renderLevels() {
     const btn = document.createElement("button");
     const isCleared = i < cleared;
     const locked = i > cleared;
-    const unlockedPending = !isCleared && !locked; // доступен, но ещё не пройден
+    const unlockedPending = !isCleared && !locked; // доступен, но ещё не пройден = АКТИВНЫЙ уровень (ровно один такой)
     const bestStars = EP().levelBestStars[i];
     let cls = "level-btn";
     if (locked) cls += " locked";
-    else if (unlockedPending) cls += " unlocked-pending";
+    else if (unlockedPending) cls += " unlocked-pending active-level";
     else if (isCleared) cls += " cleared stars-" + (bestStars || 1);
     btn.className = cls;
     if (bestStars) {
@@ -1517,7 +1743,7 @@ function iconTag(src, size) {
 }
 
 function renderShop() {
-  renderEpochTabs("epoch-tabs-shop", renderShop);
+  el("epoch-label-shop").textContent = EPOCHS[SAVE.currentEpoch].tabIcon + " " + t("epoch." + SAVE.currentEpoch);
   el("shop-gold-label").innerHTML = coinImg(34) + " " + SAVE.gold;
   const list = el("shop-list");
   list.innerHTML = "";
@@ -1618,10 +1844,10 @@ function renderShop() {
 /* ============ Боевой движок ============
    Позиции юнитов — координата вдоль поля от 0 до 100. Базы стоят не на самом
    краю, а с отступом — воины подходят к шатру/замку и бьют его, а не пустой край экрана. */
-const BASE_POS = { player: 10, enemy: 82 }; // граница базы: юниты останавливаются здесь и атакуют
+const BASE_POS = { player: 25, enemy: 75 }; // точка удара базы — 25% от края (п.7), юниты останавливаются здесь и атакуют
 let battle = null;
 let battleTimer = null;
-let selectedSpeedMul = 1; // сохраняется между уровнями (п.11), сбрасывается только перезагрузкой страницы
+let selectedSpeedMul = SAVE.defaultBattleSpeed; // сохраняется между уровнями (п.11) + стартует с значения из Настроек; смена в самом бою не переписывает дефолт в Настройках, только текущую сессию
 const TICK_MS = 100;
 
 const SIDE_COLORS = {
@@ -1696,6 +1922,10 @@ function stopBattle() {
 }
 
 el("btn-exit-battle").addEventListener("click", () => {
+  if (SAVE.confirmExitBattle) {
+    const ok = window.confirm(t("battle.confirmExit"));
+    if (!ok) return;
+  }
   stopBattle();
   renderMenu();
   showScreen("screen-menu");
@@ -1978,6 +2208,7 @@ function battleTick() {
 
   for (const unit of battle.units) {
     if (unit.hp <= 0) continue;
+    let justResetFrame = false;
     const dir = unit.side === "player" ? 1 : -1;
     const aOff = unit.isAir ? 7 : 0;
     const baseDist = unit.side === "player" ? ((BASE_POS.enemy - aOff) - unit.pos) : (unit.pos - (BASE_POS.player + aOff));
@@ -1999,6 +2230,7 @@ function battleTick() {
           unit.animAccum = 0;
           unit.spriteEl.style.transform = "";
           setUnitSpriteFrame(unit, "attack", 1);
+          justResetFrame = true; // не даём advanceSpriteFrame ниже сразу же перескочить с кадра 1 (баг с "укрупнением" на 2x/3x, см. VERSION-комментарий)
         }
         let dmg = unit.atk;
         if (unit.side === "player" && Math.random() < critChance()) dmg *= 2;
@@ -2024,7 +2256,7 @@ function battleTick() {
           if (unit.side === "player") battle.enemyHp = Math.max(0, battle.enemyHp - dmg);
           else {
             battle.playerHp = Math.max(0, battle.playerHp - dmg * defenseMul());
-            triggerHitHaptic();
+            if (SAVE.vibrationEnabled) triggerHitHaptic();
           }
         }
       }
@@ -2044,7 +2276,7 @@ function battleTick() {
         }
       }
     }
-    advanceSpriteFrame(unit, TICK_MS * sp);
+    if (!justResetFrame) advanceSpriteFrame(unit, TICK_MS * sp);
     updateUnitEl(unit);
   }
 
@@ -2507,15 +2739,16 @@ function getDeviceLabel() {
 
 function getPlayerLabel() {
   const device = getDeviceLabel();
+  const nameLang = "«" + SAVE.playerName + "» | язык: " + SAVE.language;
   try {
     const u = window.Telegram && window.Telegram.WebApp &&
       window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user;
     if (u) {
       return (u.first_name || "") + (u.last_name ? " " + u.last_name : "") +
-        (u.username ? " (@" + u.username + ")" : "") + " [id" + u.id + "] | " + device;
+        (u.username ? " (@" + u.username + ")" : "") + " [id" + u.id + "] | " + nameLang + " | " + device;
     }
   } catch (e) { /* нет доступа к Telegram-контексту — открыто не из Telegram */ }
-  return "Неизвестный игрок (не через Telegram) | " + device;
+  return "Неизвестный игрок (не через Telegram) | " + nameLang + " | " + device;
 }
 
 function sendAnalytics(text, keepalive) {
@@ -2569,6 +2802,7 @@ window.addEventListener("resize", applyViewportHeight);
 
 showSplash(preloadImages([A("backgrounds/Menu.png"), "assets/shared/splash.png"])).then(() => {
   renderMenu();
+  showScreen("screen-menu");
 });
 
 </script>
