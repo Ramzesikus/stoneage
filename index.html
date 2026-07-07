@@ -55,7 +55,7 @@
   #menu-info-tabs { display: flex; gap: 6px; width: 100%; max-width: 320px; }
   .menu-info-tab {
     flex: 1; padding: 8px 4px; border-radius: 8px; border: 1px solid var(--panel);
-    background: transparent; color: var(--text-dim); font-size: 12px; cursor: pointer; text-align: center;
+    background: rgba(36,51,28,0.75); color: var(--text-dim); font-size: 12px; cursor: pointer; text-align: center;
   }
   .menu-info-tab.active { background: var(--panel); color: var(--text); }
   #menu-hq-content, #menu-unit-legend {
@@ -82,10 +82,11 @@
   /* Карточки воинов 2x2 (свои / вражеские) */
   .unit-card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
   .unit-card {
-    background: var(--panel); border-radius: 12px; padding: 10px 8px;
+    background: rgba(36,51,28,0.75); border-radius: 12px; padding: 10px 8px;
     display: flex; flex-direction: column; align-items: center; gap: 3px; text-align: center;
   }
-  .unit-card .portrait { width: auto; object-fit: contain; margin-bottom: -6px; }
+  .unit-card .portrait-wrap { display: flex; align-items: flex-end; justify-content: center; width: 100%; margin-bottom: -6px; }
+  .unit-card .portrait { width: auto; object-fit: contain; }
   .unit-card .name { font-size: 13px; font-weight: 700; line-height: 1.2; min-height: 18px; display: flex; align-items: center; }
   .unit-card .desc { font-size: 10px; color: var(--text-dim); line-height: 1.2; min-height: 26px; margin: 2px 0; }
   .unit-card .stat-row {
@@ -107,8 +108,15 @@
     width: 70px; height: 70px; border-radius: 12px; border: 2px solid transparent;
     background: var(--panel); color: var(--text); font-size: 20px; font-weight: 700; cursor: pointer;
   }
-  .level-btn.locked { opacity: 0.35; cursor: default; }
-  .level-btn.cleared { border-color: var(--good); }
+  /* Заблокирован (следующий уровень, пока не пройден предыдущий) — серый + прозрачность плашки и рамки */
+  .level-btn.locked { background: rgba(90,90,90,0.35); border-color: rgba(60,60,60,0.35); color: rgba(240,240,232,0.5); opacity: 1; cursor: default; }
+  /* Доступен, но ещё не пройден — серый, БЕЗ прозрачности */
+  .level-btn.unlocked-pending { background: #5a5a5a; border-color: #3a3a3a; }
+  /* Пройден — оливковая заливка как раньше, рамка по числу звёзд (переиспользуем цвета, уже есть в палитре) */
+  .level-btn.cleared { background: var(--panel); }
+  .level-btn.cleared.stars-1 { border-color: var(--bad); }
+  .level-btn.cleared.stars-2 { border-color: var(--accent); }
+  .level-btn.cleared.stars-3 { border-color: var(--good); }
   .back-link { color: var(--accent); font-weight: 600; font-size: 14px; margin-top: 16px; cursor: pointer; }
 
   #screen-shop { padding: 16px; gap: 10px; overflow-y: auto; }
@@ -149,10 +157,10 @@
   #wave-counter {
     position: absolute; top: 19%; right: 8px; z-index: 20;
     background: transparent; padding: 4px;
-    display: flex; gap: 3px; flex-wrap: wrap; justify-content: flex-end;
-    max-width: 160px;
+    display: flex; flex-direction: column; align-items: flex-end; gap: 3px;
     text-shadow: 0 1px 4px #000, 0 1px 4px #000;
   }
+  .wave-counter-row { display: flex; align-items: center; }
   #kill-values {
     position: absolute; top: 12%; left: 8px; z-index: 20;
     background: transparent; padding: 6px 8px;
@@ -322,6 +330,7 @@
     position: absolute; inset: 0; z-index: 90; display: none;
     align-items: center; justify-content: center;
     background: rgba(0,0,0,0.35);
+    cursor: pointer; /* тап в любом месте оверлея снимает паузу, см. JS-обработчик */
   }
   #pause-overlay.show { display: flex; }
   #pause-overlay-icon {
@@ -347,7 +356,10 @@
   @keyframes splashSpin { to { transform: translateX(-50%) rotate(360deg); } }
 
   /* Фоны экранов меню/магазина/боя — по эпохе, задаются JS через style.backgroundImage */
-  #screen-menu, #screen-shop { background-size: cover; background-position: center; }
+  #screen-menu, #screen-shop {
+    background-size: auto 100%; background-position: center top; background-repeat: no-repeat;
+    background-color: var(--bg); /* видно по бокам, если картинка уже экрана — letterbox вместо обрезки/растяжения */
+  }
 
 </style>
 </head>
@@ -447,6 +459,7 @@
       <div id="battle-result">
         <div id="result-icon" style="font-size:52px;line-height:1;margin-bottom:4px;"></div>
         <h2 id="result-title" style="margin:0 0 4px;"></h2>
+        <div id="result-stars" style="font-size:26px;line-height:1;margin-bottom:2px;letter-spacing:2px;"></div>
         <div id="result-stats" style="display:flex;gap:16px;margin:10px 0 4px;"></div>
         <p id="result-sub" style="font-size:13px;"></p>
         <div style="display:flex; flex-direction:column; gap:8px; width:100%; max-width:280px;margin-top:8px;">
@@ -471,6 +484,27 @@
 </div>
 
 <script>
+/* VERSION: v19 (results-polish): пауза снимается тапом в любом месте экрана
+   (не только кнопкой — раньше оверлей паузы блокировал все клики намертво,
+   z-index был выше кнопок, без pointer-events:none/обработчика); экран
+   результата — иконка кубка/черепа +30%, звёзды за уровень теперь видны
+   (Cup_2 при 3★, Cup_1 при 1-2★), нижняя панель спавна скрывается на время
+   результата, поле боя приглушается на 50%; стрелы лучника стартуют строго
+   на 6-м (последнем) кадре атаки, не раньше; очередь врагов — 2 ряда вместо
+   3, ближайший враг всегда крайний справа, "+n" слева от видимых; неактивная
+   вкладка Штаб/Воины и карточки на вкладке Воины — прозрачная оливковая
+   заливка (как в шапке магазина); карточки юнитов выровнены по высоте
+   портрета под самого крупного (мамонт), пропорции между юнитами сохранены
+   как в бою, птеродактиль немного приподнят; уровни на экране выбора —
+   4 состояния (заблокирован — серый+прозрачность, доступен-не пройден —
+   серый непрозрачный, пройден — рамка по цвету звёзд: красная/жёлтая/
+   зелёная); скорость боя (1x/2x/3x) сохраняется между уровнями; иконка еды
+   Food_2 для Каменного века; фон меню/магазина — высота на весь экран,
+   ширина по пропорции (обрезка или поля по бокам), фон боя пока НЕ трогал —
+   ждём новый Fight.png (см. открытый вопрос в STONEAGE_PROJECT_CONTEXT).
+   [идея] Причина "воин увеличивается перед первой атакой" не подтверждена
+   визуально, только по коду — ширина спрайта была на "auto", теперь
+   выставляется синхронно с высотой, как и раньше уже было с высотой. */
 /* VERSION: v18 (three-stars) — крупная переработка после введения per-epoch ассетов (v17):
    заставка загрузки (мин. 2с, при старте игры и каждого боя); фоны меню/
    магазина/боя по эпохе; база — 5 фаз повреждения, own/enemy отдельные
@@ -491,7 +525,7 @@
    3 звезды) целиком — токен бота открыт в клиентском коде, значит и
    sendGift можно было вызвать напрямую в обход игры; звёзды за уровень
    остаются как рейтинг, просто без выплаты. */
-const GAME_VERSION = "v18 (three-stars)";
+const GAME_VERSION = "v19 (results-polish)";
 
 /* ============ Конфигурация: Каменный век ============ */
 const STONE_UNIT_DEFS = {
@@ -714,7 +748,8 @@ function applyEpochBackgrounds(key) {
   el("screen-menu").style.backgroundImage = 'url(' + A("backgrounds/Menu.png", key) + ')';
   el("screen-shop").style.backgroundImage = 'url(' + A("backgrounds/Shop.png", key) + ')';
   el("lane-wrap").style.setProperty('--fight-bg', 'url(' + A("backgrounds/Fight.png", key) + ')');
-  el("food-icon-label").innerHTML = '<img src="' + A("ui/Food_1.png", key) + '" style="width:40px;height:40px;object-fit:contain;vertical-align:middle;"> Еда';
+  const foodIconName = key === "stone" ? "Food_2" : "Food_1"; // Каменный век — новая иконка еды по запросу
+  el("food-icon-label").innerHTML = '<img src="' + A("ui/" + foodIconName + ".png", key) + '" style="width:40px;height:40px;object-fit:contain;vertical-align:middle;"> Еда';
 }
 
 /* ============ Сохранение ============ */
@@ -869,7 +904,7 @@ function coinImg(sz) {
    расширения, напр. "Skull_1"/"Cup_1" (файлы в ui/, без круглого бейджа —
    см. STONEAGE_CHATGPT_PROMPTS.md, раздел 5). */
 function resultIconImg(name) {
-  return '<img src="' + A("ui/" + name + ".png") + '" style="width:112px;height:112px;object-fit:contain;">';
+  return '<img src="' + A("ui/" + name + ".png") + '" style="width:146px;height:146px;object-fit:contain;">'; // было 112px, +30% по запросу
 }
 
 /* Тактильный отклик при ударе по базе игрока. Внутри Telegram — нативный
@@ -919,7 +954,16 @@ function setUnitSpriteFrame(unit, phase, frame) {
   if (!unit.spriteEl || !unit.spriteName) return;
   const ratio = SPRITE_RATIO[unit.spriteName] || 0.2;
   const size = SPRITE_CANVAS_SIZE[unit.spriteName][phase];
-  if (size) unit.spriteEl.style.height = (size[1] * ratio) + "px";
+  // Высота И ширина ставятся синхронно, вместе со сменой src. Раньше ширина
+  // была "auto" — при первой загрузке файла конкретной фазы (кэш-мисс)
+  // браузер не знает нативные пропорции до onload и на долю кадра может
+  // отрисовать элемент по дефолтной ширине, пока не подгрузится картинка —
+  // отсюда предположительно "воин увеличивается" перед первой атакой
+  // (не проверено визуально, только по коду — см. VERSION-комментарий).
+  if (size) {
+    unit.spriteEl.style.height = (size[1] * ratio) + "px";
+    unit.spriteEl.style.width = (size[0] * ratio) + "px";
+  }
   unit.spriteEl.src = spriteFramePath(unit.spriteName, unit.spriteSide, phase, frame);
 }
 
@@ -1010,6 +1054,25 @@ function renderUnitCards(containerId) {
   container.innerHTML = "";
   const grid = document.createElement("div");
   grid.className = "unit-card-grid";
+
+  // Реальная высота портрета каждого юнита — пропорционально бою (та же
+  // формула, что уже была). Карточки должны быть одинакового размера, но
+  // юниты между собой — с сохранением боевых пропорций (п.8, вариант 1,
+  // подтверждено пользователем) — значит выравниваем не сам спрайт, а
+  // область ПОД ним: фиксированная высота-обёртка под самый крупный спрайт,
+  // спрайт внутри прижат к низу (как пол в бою), у более мелких юнитов
+  // сверху остаётся пустое место.
+  const CARD_PORTRAIT_LIFT = { Flyer: 10 }; // птеродактиль летает — немного приподнят над "полом" карточки
+  const portraitHeights = {};
+  UNIT_ORDER.forEach((key) => {
+    const spriteName = SPRITE_MAP[key];
+    if (!spriteName) { portraitHeights[key] = 0; return; }
+    const cardRatio = SPRITE_RATIO[spriteName] * 1.35; // +35% (в диапазоне 20-50%, п.23)
+    const canvasH = SPRITE_CANVAS_SIZE[spriteName].walk[1];
+    portraitHeights[key] = Math.round(canvasH * cardRatio);
+  });
+  const maxPortraitWrapHeight = Math.max(...UNIT_ORDER.map((key) => portraitHeights[key]));
+
   UNIT_ORDER.forEach((key) => {
     const def = UNIT_DEFS[key];
     const spriteName = SPRITE_MAP[key];
@@ -1021,13 +1084,16 @@ function renderUnitCards(containerId) {
     const critLine = cc > 0 ? statLine("🎯крит", cc + "%") : "";
     const card = document.createElement("div");
     card.className = "unit-card";
-    const cardRatio = spriteName ? SPRITE_RATIO[spriteName] * 1.35 : 0; // +35% (в диапазоне 20-50%, п.23)
-    const canvasH = spriteName ? SPRITE_CANVAS_SIZE[spriteName].walk[1] : 0;
-    const portraitHeight = Math.round(canvasH * cardRatio);
-    const portraitStyle = spriteName ? ' style="height:' + portraitHeight + 'px;"' : '';
+    const portraitHeight = portraitHeights[key];
+    const lift = spriteName ? (CARD_PORTRAIT_LIFT[spriteName] || 0) : 0;
+    const portraitStyle = spriteName ? ' style="height:' + portraitHeight + 'px;margin-bottom:' + lift + 'px;"' : '';
     const portraitId = spriteName ? ' id="cardimg-' + key + '" data-sprite="' + spriteName + '"' : '';
+    const portraitWrapStyle = spriteName ? ' style="height:' + maxPortraitWrapHeight + 'px;"' : '';
+    const portraitHtml = portraitSrc
+      ? '<div class="portrait-wrap"' + portraitWrapStyle + '><img class="portrait"' + portraitId + portraitStyle + ' src="' + portraitSrc + '"></div>'
+      : '<div style="font-size:44px;">' + def.icon + '</div>';
     card.innerHTML =
-      (portraitSrc ? '<img class="portrait"' + portraitId + portraitStyle + ' src="' + portraitSrc + '">' : '<div style="font-size:44px;">' + def.icon + '</div>') +
+      portraitHtml +
       '<div class="name">' + def.name + '</div>' +
       '<div class="desc">' + UNIT_LEGEND_TEXT[key] + '</div>' +
       '<div class="stat-row">' +
@@ -1121,10 +1187,14 @@ function renderLevels() {
     const btn = document.createElement("button");
     const isCleared = i < cleared;
     const locked = i > cleared;
-    btn.className = "level-btn" + (isCleared ? " cleared" : "") + (locked ? " locked" : "");
+    const unlockedPending = !isCleared && !locked; // доступен, но ещё не пройден
     const bestStars = EP().levelBestStars[i];
+    let cls = "level-btn";
+    if (locked) cls += " locked";
+    else if (unlockedPending) cls += " unlocked-pending";
+    else if (isCleared) cls += " cleared stars-" + (bestStars || 1);
+    btn.className = cls;
     if (bestStars) {
-      btn.style.borderColor = STAR_COLOR;
       const stars = "★".repeat(bestStars);
       btn.innerHTML = String(i + 1) + '<div style="font-size:10px; color:' + STAR_COLOR + ';">' + stars + '</div>';
     } else {
@@ -1317,6 +1387,7 @@ function renderShop() {
 const BASE_POS = { player: 10, enemy: 82 }; // граница базы: юниты останавливаются здесь и атакуют
 let battle = null;
 let battleTimer = null;
+let selectedSpeedMul = 1; // сохраняется между уровнями (п.11), сбрасывается только перезагрузкой страницы
 const TICK_MS = 100;
 
 const SIDE_COLORS = {
@@ -1344,7 +1415,7 @@ function startBattleInner(levelIndex) {
     elapsed: 0,
     over: false,
     laneCounters: {},
-    speedMul: 1,
+    speedMul: selectedSpeedMul,
     spawnedByPlayer: {},
     deathElapsed: null,
     deathWave: null,
@@ -1354,8 +1425,9 @@ function startBattleInner(levelIndex) {
   el("tent-enemy").innerHTML = '<img src="' + A("base/Base_enemy_intact.png") + '" class="base-img">';
   el("tent-player").className = "tent player";
   el("tent-enemy").className = "tent enemy";
-  el("btn-speed").textContent = "1x";
+  el("btn-speed").textContent = selectedSpeedMul + "x";
   el("battle-result").classList.remove("show");
+  el("battle-bottom").style.display = "";
   el("battle-level-label").textContent = "Уровень " + (levelIndex + 1);
   updateGoldDisplay();
   el("lane-wrap").querySelectorAll(".unit, .coin-fly, .projectile").forEach((n) => n.remove());
@@ -1397,10 +1469,15 @@ el("btn-exit-battle").addEventListener("click", () => {
 el("btn-speed").addEventListener("click", () => {
   if (!battle) return;
   battle.speedMul = battle.speedMul >= 3 ? 1 : battle.speedMul + 1;
+  selectedSpeedMul = battle.speedMul; // запоминаем выбор — переживает переход между уровнями (п.11)
   el("btn-speed").textContent = battle.speedMul + "x";
 });
 
-el("btn-pause").addEventListener("click", () => {
+/* Общая функция паузы — вызывается и кнопкой в шапке, и тапом по оверлею
+   (п.1: раньше оверлей паузы блокировал клики по кнопкам под собой намертво,
+   т.к. был на весь экран без pointer-events:none и без своего обработчика —
+   единственный выход был перезагрузить страницу). */
+function togglePause() {
   if (!battle || battle.over) return;
   battle.paused = !battle.paused;
   activeArrowEls.forEach((a) => { a.style.animationPlayState = battle.paused ? "paused" : "running"; });
@@ -1426,7 +1503,10 @@ el("btn-pause").addEventListener("click", () => {
       setTimeout(() => overlay.classList.remove("show"), 1000);
     }));
   }
-});
+}
+
+el("btn-pause").addEventListener("click", togglePause);
+el("pause-overlay").addEventListener("click", togglePause);
 
 let arrowCounter = 0;
 const activeArrowEls = [];
@@ -1688,7 +1768,18 @@ function battleTick() {
         let dmg = unit.atk;
         if (unit.side === "player" && Math.random() < critChance()) dmg *= 2;
         if (unit.categories && unit.categories.includes("ranged")) {
-          spawnProjectile(unit, target);
+          // Стрела должна визуально стартовать вместе с последним кадром
+          // анимации атаки (натягивание/отпускание тетивы), не в момент
+          // начала замаха — раньше вылетала сразу на 1-м кадре. Урон при
+          // этом наносится сразу (как и раньше) — только визуальный вылет
+          // стрелы отложен, баланс не меняем.
+          const framesCount = (unit.spriteName && SPRITE_FRAME_COUNTS[unit.spriteName]) ? SPRITE_FRAME_COUNTS[unit.spriteName].attack : 6;
+          const arrowDelayMs = (framesCount - 1) * ANIM_FRAME_MS / (battle.speedMul || 1);
+          const arrowUnit = unit, arrowTarget = target;
+          setTimeout(() => {
+            if (arrowUnit.hp <= 0) return; // атакующий умер до вылета — не стреляем (см. STONEAGE_PROJECT_CONTEXT, раздел 7, урок про гонку состояний)
+            spawnProjectile(arrowUnit, arrowTarget && arrowTarget.hp > 0 ? arrowTarget : null);
+          }, arrowDelayMs);
         }
         if (target) {
           target.hp -= dmg;
@@ -1864,31 +1955,67 @@ function onUnitKilled(victim, killer) {
   }
 }
 
+/* Плашка предстоящих врагов — 2 ряда максимум (было до 3, п.6). Ближайший
+   к спавну враг всегда КРАЙНИЙ СПРАВА (плашка прижата к правому краю
+   экрана, где реально появляются враги). Если очередь не помещается в
+   2 ряда — "+n" (n = сколько ещё врагов не показано) ставится СЛЕВА от
+   дальней (верхней) группы. Число иконок в ряду считаем от реальной
+   ширины экрана боя, а не хардкодим — правило: ряд не должен заходить за
+   центр экрана больше чем на 15% ширины экрана. */
 function renderWaveCounter() {
   const wrap = el("wave-counter");
-  if (!battle.waveQueue.length) { wrap.innerHTML = ""; return; }
-  const reversed = battle.waveQueue.slice().reverse();
-  const ICON_SIZE = 36; // было 39, уменьшено на ~7.5% (в диапазоне 5-10%, п.12)
+  const order = battle.waveQueue; // уже отсортирована по времени спавна, [0] = ближайший
+  if (!order.length) { wrap.innerHTML = ""; return; }
+
+  const ICON_SIZE = 36;
   const OVERLAP_PX = Math.round(ICON_SIZE * 0.3); // 30% перекрытие
-  const maxShow = 10; // подобрано под max-width:160px контейнера - должно укладываться в 2 ряда
-  const shown = reversed.slice(0, maxShow);
-  wrap.innerHTML = "";
-  if (reversed.length > maxShow) {
-    const more = document.createElement("span");
-    more.style.cssText = "font-size:12px;color:#fff;text-shadow:0 1px 4px #000;margin-right:2px;vertical-align:middle;line-height:30px;";
-    more.textContent = "+" + (reversed.length - maxShow);
-    wrap.appendChild(more);
+  const STEP_PX = ICON_SIZE - OVERLAP_PX;
+  const RIGHT_MARGIN = 8; // совпадает с right:8px у #wave-counter
+
+  const wrapW = (el("lane-wrap").clientWidth) || 390;
+  // Левая граница ряда не должна заходить левее (центр - 15% ширины экрана)
+  const minLeftX = wrapW * 0.5 - wrapW * 0.15;
+  const maxRowWidth = Math.max(ICON_SIZE, (wrapW - RIGHT_MARGIN) - minLeftX);
+  const perRow = Math.max(1, 1 + Math.floor((maxRowWidth - ICON_SIZE) / STEP_PX));
+  const totalCapacity = perRow * 2;
+
+  const shown = order.slice(0, totalCapacity); // soonest-first, до totalCapacity штук
+  const hiddenCount = order.length - shown.length;
+  const nearRow = shown.slice(0, perRow);         // ближайшие (нижний ряд)
+  const farRow = shown.slice(perRow, totalCapacity); // следующие по очереди (верхний ряд)
+
+  function buildRow(rowUnits, extraLeftBadge) {
+    const row = document.createElement("div");
+    row.className = "wave-counter-row";
+    if (extraLeftBadge) {
+      const more = document.createElement("span");
+      more.style.cssText = "font-size:12px;color:#fff;text-shadow:0 1px 4px #000;margin-right:4px;";
+      more.textContent = extraLeftBadge;
+      row.appendChild(more);
+    }
+    // Разворачиваем — соответствующий этому ряду САМЫЙ БЛИЖАЙШИЙ враг должен
+    // оказаться последним в DOM (значит крайним справа, т.к. ряд прижат
+    // вправо через flex-direction:column;align-items:flex-end у родителя).
+    rowUnits.slice().reverse().forEach((w, i) => {
+      const src = UNIT_ICONS[w.type];
+      const iconEl = src ? document.createElement("img") : document.createElement("span");
+      if (src) { iconEl.src = src; }
+      else { iconEl.textContent = UNIT_DEFS[w.type].icon; }
+      iconEl.style.cssText = "width:" + ICON_SIZE + "px;height:" + ICON_SIZE + "px;object-fit:contain;display:inline-block;vertical-align:middle;" +
+        "position:relative;z-index:" + (i + 1) + ";" +
+        (i === 0 ? "margin-left:0;" : "margin-left:-" + OVERLAP_PX + "px;");
+      row.appendChild(iconEl);
+    });
+    return row;
   }
-  shown.forEach((w, i) => {
-    const src = UNIT_ICONS[w.type];
-    const iconEl = src ? document.createElement("img") : document.createElement("span");
-    if (src) { iconEl.src = src; }
-    else { iconEl.textContent = UNIT_DEFS[w.type].icon; }
-    iconEl.style.cssText = "width:" + ICON_SIZE + "px;height:" + ICON_SIZE + "px;object-fit:contain;display:inline-block;vertical-align:middle;" +
-      "position:relative;z-index:" + (i + 1) + ";" +
-      (i === 0 ? "margin-left:0;" : "margin-left:-" + OVERLAP_PX + "px;");
-    wrap.appendChild(iconEl);
-  });
+
+  wrap.innerHTML = "";
+  if (farRow.length || hiddenCount > 0) {
+    wrap.appendChild(buildRow(farRow, hiddenCount > 0 ? "+" + hiddenCount : null));
+  }
+  if (nearRow.length) {
+    wrap.appendChild(buildRow(nearRow, null));
+  }
 }
 
 function renderKillValues() {
@@ -2028,6 +2155,18 @@ function endBattle(won) {
   const enemyHpPct = Math.round((battle.enemyHp / battle.enemyHpMax) * 100);
   const totalEarned = (battle.goldEarned || 0) + (won ? levelBonus : 0);
 
+  // Звёзды за уровень (п.10) — заполненные золотые, недостающие тусклые.
+  // Cup_2 показываем только при 3★, иначе Cup_1 (файлы уже загружены).
+  function starsHtml(n) {
+    let out = "";
+    for (let i = 1; i <= 3; i++) {
+      out += '<span style="color:' + (i <= n ? STAR_COLOR : "#ffffff30") + ';">★</span>';
+    }
+    return out;
+  }
+  const winCupName = earnedStars >= 3 ? "Cup_2" : "Cup_1";
+  el("result-stars").innerHTML = won ? starsHtml(earnedStars) : "";
+
   if (!won) {
     el("result-icon").innerHTML = resultIconImg("Skull_1");
     el("result-title").textContent = "Поражение";
@@ -2042,7 +2181,7 @@ function endBattle(won) {
     primaryBtn.style.color = "#fff";
     primaryBtn.onclick = () => { const lvl = battle.levelIndex; stopBattle(); startBattle(lvl); };
   } else if (!isLastLevel) {
-    el("result-icon").innerHTML = resultIconImg("Cup_1");
+    el("result-icon").innerHTML = resultIconImg(winCupName);
     el("result-title").textContent = "Победа!";
     el("result-title").style.color = "var(--accent)";
     el("result-stats").innerHTML =
@@ -2055,7 +2194,7 @@ function endBattle(won) {
     primaryBtn.style.color = "#2a2010";
     primaryBtn.onclick = () => { const next = battle.levelIndex + 1; stopBattle(); startBattle(next); };
   } else if (nextEpochKey) {
-    el("result-icon").innerHTML = resultIconImg("Cup_1");
+    el("result-icon").innerHTML = resultIconImg(winCupName);
     el("result-title").textContent = "Эпоха пройдена!";
     el("result-title").style.color = "var(--accent)";
     el("result-stats").innerHTML =
@@ -2073,7 +2212,7 @@ function endBattle(won) {
       showScreen("screen-levels");
     };
   } else {
-    el("result-icon").innerHTML = resultIconImg("Cup_1");
+    el("result-icon").innerHTML = resultIconImg(winCupName);
     el("result-title").textContent = "Всё пройдено!";
     el("result-title").style.color = "var(--accent)";
     el("result-stats").innerHTML =
@@ -2089,6 +2228,12 @@ function endBattle(won) {
 
   el("result-btn-shop").onclick = () => { stopBattle(); renderShop(); showScreen("screen-shop"); };
   el("result-btn-menu").onclick = () => { stopBattle(); renderMenu(); showScreen("screen-menu"); };
+
+  // Плашка с ценой юнитов (нижняя панель спавна) пропадает на время экрана
+  // результата — battle-result и так приглушает поле боя (background:
+  // #00000080, 50% — стартовое значение, поправим степень при необходимости),
+  // но нижнюю панель прячем явно, а не полагаемся на z-index/прозрачность.
+  el("battle-bottom").style.display = "none";
 
   overlay.classList.add("show");
 }
