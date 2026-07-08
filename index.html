@@ -28,8 +28,8 @@
   }
   #bottom-nav.hidden { display: none; }
   .nav-btn {
-    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
-    background: none; border: none; color: var(--text-dim); font-size: 10px; cursor: pointer; padding: 4px 2px;
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    background: none; border: none; color: var(--text-dim); cursor: pointer; padding: 8px 2px;
   }
   .nav-btn .nav-icon { font-size: 22px; line-height: 1; }
   .nav-btn.active { color: var(--accent); }
@@ -252,29 +252,34 @@
   .coin-fly .coin-value { font-size: 11px; color: var(--accent); font-weight: 700; text-shadow: 0 1px 2px #000; }
 
   #lane-wrap {
-    flex: 1; position: relative; overflow: hidden;
+    flex: 1; position: relative; overflow: hidden; touch-action: none;
   }
-  #lane-wrap::before {
-    content: ""; position: absolute; inset: 0; z-index: 0;
+  /* Поле боя — шире экрана (ширина считается в JS под реальную высоту
+     lane-wrap × соотношение сторон картинки, ~1.75:1 у Fight_SA/Fight_M),
+     двигается пальцем/мышью (см. camera-логику в JS). Раньше здесь была
+     просто статичная обрезанная по бокам подложка без движения — по
+     просьбе Романа переделано на настоящую панораму. */
+  #battlefield {
+    position: absolute; top: 0; left: 0; height: 100%; z-index: 0; touch-action: none;
+  }
+  #battlefield::before {
+    content: ""; position: absolute; inset: 0; z-index: -1;
     background-image: var(--fight-bg);
-    background-size: auto 100%; background-position: center center; background-repeat: no-repeat;
-    background-color: var(--bg); /* letterbox по бокам, если картинка уже экрана */
+    background-size: 100% 100%; background-repeat: no-repeat;
     filter: brightness(1.18) saturate(1.05);
-    /* Новые широкие фоны (Fight_SA.png/Fight_M.png, 1344×768, ~1.75:1) —
-       измерено по пикселям (граница = самая тёмная строка на переходе):
-       Каменный век — тёмная земля 0-11.85%, дорога 11.85-38.25% (дорога
-       высотой 26.4%); Средневековье — тёмная земля 0-11.7%, дорога
-       11.7-31.9% (дорога высотой 20.2%). Дорога у Средневековья заметно
-       ниже (20.2% против 26.4%) — GROUND_LANE_OFFSETS/AIR_LANE_OFFSETS
-       ниже посчитаны под МЕНЬШУЮ (медievальную) высоту дороги как общий
-       знаменатель для обеих эпох — так юниты гарантированно не выйдут за
-       пределы дороги ни в одной из эпох, но в Каменном веке часть
-       нарисованной дороги (свободные ~6% сверху) останется визуально не
-       занятой. Если хочешь использовать её полностью — нужно либо развести
-       офсеты по эпохам в коде (несложно), либо подрезать/перегенерировать
-       один из фонов под одинаковую высоту дороги. */
+    /* #battlefield уже имеет ширину, точно соответствующую пропорциям
+       картинки (см. JS) — можно просто растянуть 100% 100% без auto/cover
+       трюков, обрезки не будет по определению.
+       Измерено по пикселям (Fight_SA.png/Fight_M.png, 1344×768, ~1.75:1,
+       граница = самая тёмная строка на переходе): Каменный век — тёмная
+       земля 0-11.85%, дорога 11.85-38.25% (высота дороги 26.4%);
+       Средневековье — тёмная земля 0-11.7%, дорога 11.7-31.9% (высота
+       дороги 20.2%). GROUND_LANE_OFFSETS/AIR_LANE_OFFSETS посчитаны под
+       МЕНЬШУЮ (медievальную) высоту дороги как общий знаменатель — юниты
+       гарантированно не выйдут за пределы дороги ни в одной из эпох, но в
+       Каменном веке верхняя часть нарисованной дороги (~6%) останется не
+       занятой. Если хочешь иначе — можно развести офсеты по эпохам. */
   }
-  #hills-svg { display: none; }
   .unit { z-index: 1; }
   .unit {
     position: absolute; width: 46px; height: 46px; margin-left: -23px;
@@ -422,9 +427,9 @@
   @keyframes splashSpin { to { transform: translateX(-50%) rotate(360deg); } }
 
   /* Фоны экранов меню/магазина/воинов/боя — по эпохе, задаются JS через style.backgroundImage */
-  #screen-menu, #screen-shop, #screen-warriors {
-    background-size: auto 100%; background-position: center top; background-repeat: no-repeat;
-    background-color: var(--bg); /* видно по бокам, если картинка уже экрана — letterbox вместо обрезки/растяжения */
+  #screen-menu, #screen-shop, #screen-warriors, #screen-settings, #screen-levels {
+    background-size: 100% auto; background-position: center bottom; background-repeat: no-repeat;
+    background-color: var(--bg); /* видно по бокам, если картинка уже узкая для этого экрана */
   }
 
 </style>
@@ -532,10 +537,10 @@
 
   <div class="screen" id="screen-battle">
     <div id="lane-wrap">
-      <svg id="hills-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
-        <path d="M0,75 L8,40 L15,65 L24,22 L34,58 L45,32 L55,62 L66,26 L76,58 L87,38 L100,68 L100,100 L0,100 Z"
-              fill="#1a2440" opacity="0.6"/>
-      </svg>
+      <div id="battlefield">
+        <div class="tent player" id="tent-player"></div>
+        <div class="tent enemy" id="tent-enemy"></div>
+      </div>
 
       <div id="battle-top">
         <div class="base-hp-wrap">
@@ -560,8 +565,6 @@
       <div id="wave-counter"></div>
       <div id="kill-values"></div>
 
-      <div class="tent player" id="tent-player"></div>
-      <div class="tent enemy" id="tent-enemy"></div>
       <div id="pause-overlay"><div id="pause-overlay-icon">⏸</div></div>
       <div id="battle-result">
         <div id="result-icon" style="font-size:52px;line-height:1;margin-bottom:4px;"></div>
@@ -589,16 +592,51 @@
   </div>
 
   <div id="bottom-nav">
-    <button class="nav-btn" id="nav-btn-settings"><span class="nav-icon">⚙️</span><span id="nav-label-settings">Настройки</span></button>
-    <button class="nav-btn" id="nav-btn-shop"><span class="nav-icon">🛒</span><span id="nav-label-shop">Магазин</span></button>
-    <button class="nav-btn nav-btn-main" id="nav-btn-main"><span class="nav-icon">🏠</span><span id="nav-label-main">Главная</span></button>
-    <button class="nav-btn" id="nav-btn-levels"><span class="nav-icon">🗺️</span><span id="nav-label-levels">Уровни</span></button>
-    <button class="nav-btn" id="nav-btn-warriors"><span class="nav-icon">🗡️</span><span id="nav-label-warriors">Воины</span></button>
+    <button class="nav-btn" id="nav-btn-settings"><span class="nav-icon">⚙️</span></button>
+    <button class="nav-btn" id="nav-btn-shop"><span class="nav-icon">🛒</span></button>
+    <button class="nav-btn nav-btn-main" id="nav-btn-main"><span class="nav-icon">🏠</span></button>
+    <button class="nav-btn" id="nav-btn-levels"><span class="nav-icon">🗺️</span></button>
+    <button class="nav-btn" id="nav-btn-warriors"><span class="nav-icon">🗡️</span></button>
   </div>
 
 </div>
 
 <script>
+/* VERSION: v23 (battlefield-camera): поле боя (#battlefield) теперь РЕАЛЬНО
+   шире экрана (ширина = высота lane-wrap × 1.75, соотношение сторон
+   Fight_SA/Fight_M) и двигается пальцем/мышью (drag) — раньше widescreen-фон
+   был просто статичной подложкой, обрезанной по бокам без движения, что
+   оказалось не тем, о чём договаривались. Юниты/база/снаряды/фон — всё
+   внутри #battlefield, фиксированные элементы интерфейса (HP-бары, кнопки,
+   счётчик волн, результат) остались прямыми детьми #lane-wrap и не
+   двигаются. BASE_POS остался 25/75 — расстояние между базами теперь само
+   по себе намного больше в пикселях за счёт ширины поля, отдельно менять
+   не потребовалось. Версия скорректирована на v23 по факту (были v20-v22
+   в предыдущих сессиях, не отражённые в этом файле построчно).
+   [идея] Не проверено на устройстве — драг реализован через Pointer Events,
+   должен работать и с тачем, и с мышью, но живьём не тестировал.
+   Плюс: Menu.png теперь фон и на Настройках, и на Уровнях (раньше только
+   Главный/Магазин/Воины) — масштаб везде по ширине экрана (не по высоте,
+   как раньше), низ картинки = низ экрана, обрезается верх картинки, если
+   она выше экрана. */
+/* VERSION: v20 (bottom-nav): большая переработка навигации — постоянная
+   нижняя панель (Настройки/Магазин/Главная/Уровни/Воины), скрывается только
+   на экране боя и результата; Главный экран упрощён (эпоха, золото,
+   активный уровень, "В бой!" — сразу стартует активный уровень, без захода
+   на Уровни); экран "Воины" вынесен из вкладки меню в отдельный экран;
+   новый экран Настроек (имя игрока, вибрация, подтверждение выхода, язык,
+   эпоха — теперь переключается только тут, со сплэшем при смене, скорость
+   боя по умолчанию, сброс прогресса, форма обратной связи); полная
+   локализация интерфейса на 4 языка (ru/en/zh/es) — словарь STRINGS,
+   t()/plural(), язык хранится в SAVE; новые широкие фоны боя (Fight_SA/
+   Fight_M, ~1.75:1) — пересчитаны GROUND_LANE_OFFSETS/AIR_LANE_OFFSETS под
+   реальные пропорции дороги, базы прижаты к краю экрана; точка удара базы
+   BASE_POS — 25/75 (было 10/82); исправлен баг с "укрупнением" юнита на
+   первой атаке (гонка в advanceSpriteFrame на 2x/3x скорости, кадр 1
+   никогда не успевал отрисоваться). [идея] Широкий фон боя сейчас —
+   статичная подложка (не двигается, лишняя ширина просто обрезается по
+   бокам) — если нужна панорама/движение камеры, это отдельная нереализованная
+   фича, не часть этой версии. */
 /* VERSION: v19 (results-polish): пауза снимается тапом в любом месте экрана
    (не только кнопкой — раньше оверлей паузы блокировал все клики намертво,
    z-index был выше кнопок, без pointer-events:none/обработчика); экран
@@ -640,7 +678,7 @@
    3 звезды) целиком — токен бота открыт в клиентском коде, значит и
    sendGift можно было вызвать напрямую в обход игры; звёзды за уровень
    остаются как рейтинг, просто без выплаты. */
-const GAME_VERSION = "v19 (results-polish)";
+const GAME_VERSION = "v23 (battlefield-camera)";
 
 /* ============ Конфигурация: Каменный век ============ */
 const STONE_UNIT_DEFS = {
@@ -886,12 +924,6 @@ function refreshStaticUiText() {
   el("result-btn-shop-label").textContent = t("result.shop");
   el("result-btn-menu").textContent = t("nav.backToMenu");
 
-  el("nav-label-settings").textContent = t("nav.settings");
-  el("nav-label-shop").textContent = t("menu.shop");
-  el("nav-label-main").textContent = t("nav.main");
-  el("nav-label-levels").textContent = t("nav.levels");
-  el("nav-label-warriors").textContent = t("menu.tab.units");
-
   el("settings-title").textContent = t("settings.title");
   el("settings-playerName-label").textContent = t("settings.playerName");
   el("settings-vibration-label").textContent = t("settings.vibration");
@@ -930,7 +962,9 @@ function applyEpochBackgrounds(key) {
   el("screen-menu").style.backgroundImage = 'url(' + A("backgrounds/Menu.png", key) + ')';
   el("screen-shop").style.backgroundImage = 'url(' + A("backgrounds/Shop.png", key) + ')';
   el("screen-warriors").style.backgroundImage = 'url(' + A("backgrounds/Menu.png", key) + ')';
-  el("lane-wrap").style.setProperty('--fight-bg', 'url(' + A("backgrounds/Fight.png", key) + ')');
+  el("screen-settings").style.backgroundImage = 'url(' + A("backgrounds/Menu.png", key) + ')';
+  el("screen-levels").style.backgroundImage = 'url(' + A("backgrounds/Menu.png", key) + ')';
+  el("battlefield").style.setProperty('--fight-bg', 'url(' + A("backgrounds/Fight.png", key) + ')');
   const foodIconName = key === "stone" ? "Food_2" : "Food_1"; // Каменный век — новая иконка еды по запросу
   el("food-icon-label").innerHTML = '<img src="' + A("ui/" + foodIconName + ".png", key) + '" style="width:40px;height:40px;object-fit:contain;vertical-align:middle;"> ' + t("battle.food");
 }
@@ -1862,6 +1896,56 @@ let battleTimer = null;
 let selectedSpeedMul = SAVE.defaultBattleSpeed; // сохраняется между уровнями (п.11) + стартует с значения из Настроек; смена в самом бою не переписывает дефолт в Настройках, только текущую сессию
 const TICK_MS = 100;
 
+/* ============ Камера поля боя ============
+   Поле боя (#battlefield) шире экрана — по соотношению сторон картинки
+   Fight_SA/Fight_M (1344×768, ~1.75:1). Двигает камеру ПАЛЕЦ игрока (drag),
+   никакой автопрокрутки/слежения за юнитами нет — так и договорились. */
+const BATTLEFIELD_IMG_ASPECT = 1344 / 768;
+let cameraX = 0; // px, текущее смещение камеры (0 = левый край поля, у своей базы)
+let battlefieldWidthPx = 0;
+
+function updateBattlefieldSize() {
+  const laneWrap = el("lane-wrap");
+  const h = laneWrap.clientHeight || 600;
+  battlefieldWidthPx = Math.round(h * BATTLEFIELD_IMG_ASPECT);
+  const bf = el("battlefield");
+  bf.style.width = battlefieldWidthPx + "px";
+  bf.style.height = h + "px";
+  clampCamera();
+  applyCameraTransform();
+}
+function maxCameraX() {
+  const viewportW = el("lane-wrap").clientWidth || 390;
+  return Math.max(0, battlefieldWidthPx - viewportW);
+}
+function clampCamera() {
+  cameraX = Math.max(0, Math.min(maxCameraX(), cameraX));
+}
+function applyCameraTransform() {
+  el("battlefield").style.transform = "translateX(-" + cameraX + "px)";
+}
+
+let cameraDragging = false, cameraDragStartX = 0, cameraDragStartCam = 0;
+el("battlefield").addEventListener("pointerdown", (e) => {
+  cameraDragging = true;
+  cameraDragStartX = e.clientX;
+  cameraDragStartCam = cameraX;
+  try { el("battlefield").setPointerCapture(e.pointerId); } catch (err) { /* не критично, если не поддерживается */ }
+});
+el("battlefield").addEventListener("pointermove", (e) => {
+  if (!cameraDragging) return;
+  cameraX = cameraDragStartCam - (e.clientX - cameraDragStartX);
+  clampCamera();
+  applyCameraTransform();
+});
+["pointerup", "pointercancel"].forEach((evt) => {
+  el("battlefield").addEventListener(evt, () => { cameraDragging = false; });
+});
+
+window.addEventListener("resize", () => {
+  if (el("screen-battle").classList.contains("active")) updateBattlefieldSize();
+});
+
 const SIDE_COLORS = {
   player: { main: "#3a8ad9", dark: "#16243a" },
   enemy:  { main: "#d9483a", dark: "#3a1410" },
@@ -1903,8 +1987,11 @@ function startBattleInner(levelIndex) {
   el("kill-values").style.display = "";
   el("battle-level-label").textContent = t("battle.level", { n: levelIndex + 1 });
   updateGoldDisplay();
-  el("lane-wrap").querySelectorAll(".unit, .coin-fly, .projectile").forEach((n) => n.remove());
+  el("battlefield").querySelectorAll(".unit, .coin-fly, .projectile").forEach((n) => n.remove());
   activeArrowEls.length = 0;
+  updateBattlefieldSize();
+  cameraX = 0; // старт боя — камера всегда на левом краю (у своей базы)
+  applyCameraTransform();
   renderUnitButtons();
   renderKillValues();
   renderWaveCounter();
@@ -1989,9 +2076,9 @@ let arrowCounter = 0;
 const activeArrowEls = [];
 
 function spawnProjectile(attacker, target) {
-  const laneWrap = el("lane-wrap");
-  const wrapW = laneWrap.clientWidth || 390;
-  const wrapH = laneWrap.clientHeight || 700;
+  const battlefield = el("battlefield");
+  const wrapW = battlefield.clientWidth || 390;
+  const wrapH = battlefield.clientHeight || 700;
 
   // Центр силуэта юнита — по РЕАЛЬНОЙ пиксельной высоте его спрайта (разные
   // персонажи сильно отличаются по росту, фиксированный % не годится для
@@ -2059,7 +2146,7 @@ function spawnProjectile(attacker, target) {
     "animation:" + animName + " 0.38s linear forwards",
     "animation-play-state:" + (battle && battle.paused ? "paused" : "running"),
   ].join(";");
-  laneWrap.appendChild(arrow);
+  battlefield.appendChild(arrow);
   activeArrowEls.push(arrow);
   setTimeout(() => {
     arrow.remove();
@@ -2098,7 +2185,7 @@ function trySpawnPlayerUnit(key) {
 }
 
 /* Пересчитано под новые широкие фоны Fight_SA/Fight_M (см. VERSION-комментарий
-   и расчёт в CSS у #lane-wrap::before). Дорога — 11.7%-31.9% высоты экрана
+   и расчёт в CSS у #battlefield::before). Дорога — 11.7%-31.9% высоты экрана
    (по меньшей, медievальной высоте дороги, общий знаменатель для обеих
    эпох). Наземные — внутри дороги с запасом на высоту спрайта (~15-28%
    было бы впритык, взял чуть уже: 17-24%). Летающие — выше дороги, в
@@ -2178,7 +2265,7 @@ function mountUnitEl(unit) {
     node.insertAdjacentHTML("beforeend", span);
   }
 
-  el("lane-wrap").appendChild(node);
+  el("battlefield").appendChild(node);
   unit.el = node;
   updateUnitEl(unit);
 }
